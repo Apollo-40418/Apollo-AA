@@ -5,7 +5,7 @@ import android.content.Intent
 import android.net.Uri
 
 internal object ApolloLinks {
-    const val PRIVACY = "https://github.com/twinksoftware/gearslip/blob/main/PRIVACY.md"
+    const val PRIVACY = "https://github.com/Apollo-40418/Gearslip/blob/main/PRIVACY.md"
 
     fun open(context: Context, url: String) {
         runCatching {

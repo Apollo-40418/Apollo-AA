@@ -4,7 +4,7 @@
 
 An Android Auto alternative built for everyone.
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/twinksoftware/gearslip)
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Apollo-40418/Gearslip)
 
 ![Vela Maps navigating on the car screen, with the music player beside the map](docs/screenshots/navigation.png)
 
@@ -52,6 +52,17 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 | ![DuckDuckGo open in Gearslip's web browser](docs/screenshots/web.png) | |
 | Browse the web while parked. | |
 
+## Apollo AA
+
+| | |
+|---|---|
+| ![Apollo AA home screen](docs/screenshots/apollo-home.png) | ![Apps available in Apollo AA](docs/screenshots/apollo-apps.png) |
+| Home screen. | Apps. |
+| ![Apollo AA preview](docs/screenshots/apollo-preview.png) | ![Apollo AA theme options](docs/screenshots/apollo-theme.png) |
+| Preview. | Themes. |
+| ![Apollo AA running on Android 10](docs/screenshots/apollo-running-android-10.png) | ![Android 10 screen in Apollo AA](docs/screenshots/apollo-android-10.png) |
+| Running on Android 10. | Android 10. |
+
 ## Features
 
 - **Navigation.** Gearslip hosts real map apps on the car screen. While you navigate, a big
@@ -77,7 +88,7 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 
 ## Install
 
-1. Install Gearslip from [the releases page](https://github.com/twinksoftware/Gearslip/releases)
+1. Install Apollo AA from [the releases page](https://github.com/Apollo-40418/Gearslip/releases)
    or through Obtainium.
 2. Open it. Setup asks where your Android Auto certificate comes from, then for one
    permission at a time, each with a plain reason. A help screen in the car answers the rest.

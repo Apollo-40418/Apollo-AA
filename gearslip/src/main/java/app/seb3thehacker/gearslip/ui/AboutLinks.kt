@@ -23,7 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 /** The project's remaining links outside the app. */
 internal object GearslipLinks {
     const val MATRIX = "https://matrix.to/#/!mf0_mgBd5KqKpc9FfX_wHp1jFCcwAtPrndIn_oGIyMk?via=matrix.org"
-    const val SOURCE = "https://github.com/twinksoftware/gearslip"
+    const val SOURCE = "https://github.com/Apollo-40418/Gearslip"
     const val CARS = "$SOURCE/blob/main/CARS.md"
     const val PRIVACY = "$SOURCE/blob/main/PRIVACY.md"
     const val TRANSLATE = "https://hosted.weblate.org/engage/gearslip/"
