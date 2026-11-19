@@ -14,6 +14,8 @@ import android.content.pm.PackageManager
 import app.seb3thehacker.gearslip.R
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
+import app.seb3thehacker.gearslip.PlatformPermissions
 import app.seb3thehacker.gearslip.GearslipLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -94,12 +96,13 @@ object BluetoothAudioCheck {
                 main.postDelayed(::check, SETTLE_MS)
             }
         }
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             r,
             IntentFilter(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED).apply {
                 addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             },
-            Context.RECEIVER_EXPORTED,
+            ContextCompat.RECEIVER_EXPORTED,
         )
         receiver = r
     }
@@ -109,7 +112,7 @@ object BluetoothAudioCheck {
         if (!armed) return
         val context = appContext ?: return
         if (CarSettings.pipesNow) {
-            set(false, "audio goes through Gearslip")
+            set(false, "audio goes through Apollo AA")
             return
         }
         audioToCar { ok ->
@@ -128,9 +131,9 @@ object BluetoothAudioCheck {
         val car = CarBluetooth.carAddress ?: return
         val context = appContext ?: return
         if (!app.seb3thehacker.gearslip.audio.CarAudio.sinkOffered) return
-        log.i("Bluetooth audio: the car turned it off with Gearslip running, so this car's music goes through Gearslip")
+        log.i("Bluetooth audio: the car turned it off with Apollo AA running, so this car's music goes through Apollo AA")
         CarSettings.rememberAudioCar(car)
-        set(false, "audio goes through Gearslip")
+        set(false, "audio goes through Apollo AA")
         app.seb3thehacker.gearslip.audio.CarAudio.request()
         CarToasts.show(this, context.getString(R.string.car_audio_switched), androidx.car.app.CarToast.LENGTH_LONG)
     }
@@ -142,7 +145,7 @@ object BluetoothAudioCheck {
     @SuppressLint("MissingPermission")
     private fun audioToCar(result: (Boolean?) -> Unit) {
         val context = appContext ?: return result(null)
-        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (!PlatformPermissions.hasBluetoothConnect(context)) {
             log.i("can't check the audio connection: the Bluetooth permission isn't granted")
             return result(null)
         }

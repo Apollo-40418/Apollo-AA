@@ -189,7 +189,7 @@ object SessionReport {
             append(row("failed in state", lastState))
             append(row("duration", "${seconds}s"))
             append("\n")
-            append(row("gearslip", "$appVersion (code $appCode)"))
+            append(row("Apollo AA", "$appVersion (code $appCode)"))
             append(row("phone", "${Build.MANUFACTURER} ${Build.MODEL}"))
             append(row("android", "${Build.VERSION.RELEASE} (sdk ${Build.VERSION.SDK_INT}, patch ${Build.VERSION.SECURITY_PATCH})"))
             append("\n")
@@ -229,7 +229,6 @@ object SessionReport {
             }
             if (outcome == "connected") runCatching {
                 app.seb3thehacker.gearslip.stats.WorkedPrompt.onDriveWorked(context, headUnitInfo, protocolVersion, carScreen, carDpi)
-                app.seb3thehacker.gearslip.ui.DonatePrompt.onDriveWorked(context)
             }
             runCatching { app.seb3thehacker.gearslip.update.UpdateChecker.onDriveEnded(context) }
         }

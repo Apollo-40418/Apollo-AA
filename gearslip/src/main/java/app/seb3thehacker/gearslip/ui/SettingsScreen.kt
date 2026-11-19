@@ -92,7 +92,6 @@ import kotlinx.coroutines.withContext
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenRecommendedApps: () -> Unit,
-    onReplayTutorial: () -> Unit,
     atUsageNotes: Boolean = false,
 ) {
     val scroll = rememberScrollState()
@@ -108,6 +107,7 @@ fun SettingsScreen(
     fun ready(n: Int) = built > n
     // Opened from Home's "it worked" card: start at usage notes.
     var usageNotesY by remember { mutableIntStateOf(-1) }
+    var whatsNewOpen by remember { mutableStateOf(false) }
     if (atUsageNotes) {
         LaunchedEffect(Unit) {
             val y = snapshotFlow { usageNotesY }.first { it >= 0 }
@@ -138,20 +138,14 @@ fun SettingsScreen(
         ) {
             Spacer(Modifier.height(0.dp))
             SettingsSection {
-                val context = LocalContext.current
                 SettingsRow(
                     stringResource(R.string.settings_whats_new),
-                    Modifier.clickable { GearslipLinks.open(context, GearslipLinks.RELEASE_NOTES) },
-                    subtitle = stringResource(R.string.settings_whats_new_sub, BuildConfig.VERSION_NAME),
+                    Modifier.clickable { whatsNewOpen = true },
                     icon = Icons.Filled.Star,
                     trailing = { Arrow() },
                 )
                 LanguageRow()
             }
-            SettingsSection(
-                stringResource(R.string.settings_support),
-                footer = stringResource(R.string.settings_support_footer),
-            ) { DonateRows() }
             if (ready(2)) ConnectionSection()
             if (SHOW_RECOMMENDED_APPS && ready(6)) AppsSection(onOpenRecommendedApps)
             if (ready(7)) SettingsSection(
@@ -161,15 +155,15 @@ fun SettingsScreen(
             ) { UsageStatsRows() }
             if (ready(8)) SettingsSection(stringResource(R.string.settings_updates)) { UpdateRow() }
             if (ready(9)) CertificateSection()
-            if (ready(10)) AboutSection(onReplayTutorial)
-            if (BuildConfig.DEBUG && ready(11)) DebugSection()
+            if (BuildConfig.DEBUG && ready(10)) DebugSection()
             Spacer(Modifier.height(16.dp))
+            if (whatsNewOpen) WhatsNewDialog(onDismiss = { whatsNewOpen = false })
         }
     }
 }
 
 /** How many sections Settings builds one frame at a time; see [ready]. */
-private const val SECTIONS = 12
+private const val SECTIONS = 11
 
 @Composable
 private fun Arrow() = Icon(
@@ -205,22 +199,6 @@ private fun LanguageRow() {
         icon = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_language),
         trailing = { Arrow() },
     )
-}
-
-/** The setup guide replay, and where Gearslip lives outside the app. */
-@Composable
-private fun AboutSection(onReplayTutorial: () -> Unit) {
-    SettingsSection(stringResource(R.string.settings_about)) {
-        SettingsRow(
-            stringResource(R.string.settings_replay),
-            Modifier.clickable(onClick = onReplayTutorial),
-            subtitle = stringResource(R.string.settings_replay_sub),
-            icon = Icons.Filled.Refresh,
-            trailing = { Arrow() },
-        )
-        SettingsDivider()
-        AboutLinkRows()
-    }
 }
 
 /** Off, a stock Android Auto app or head unit answers the USB connection instead of Gearslip. */
@@ -362,14 +340,6 @@ private fun DebugSection() {
             },
             subtitle = "Clears the saved address and shows Home's card",
             icon = Icons.Filled.Info,
-        )
-        SettingsDivider()
-        val badge by CarSettings.debugBadge.collectAsState()
-        SettingsRow(
-            "Debug badge on the car screen",
-            Modifier.clickable { CarSettings.setDebugBadge(!badge) },
-            subtitle = "Turn it off for screenshots",
-            trailing = { Switch(checked = badge, onCheckedChange = null) },
         )
     }
 }

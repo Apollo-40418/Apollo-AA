@@ -41,7 +41,7 @@ object CertDownloader {
                 val buf = ByteArray(4096)
                 var n: Int
                 while (input.read(buf).also { n = it } != -1) out.write(buf, 0, n)
-                out.toString(Charsets.UTF_8)
+                String(out.toByteArray(), Charsets.UTF_8)
             }
         } catch (e: Exception) {
             throw RuntimeException("could not download the $label: ${e.message}", e)

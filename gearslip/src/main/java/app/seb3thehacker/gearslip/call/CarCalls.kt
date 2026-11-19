@@ -4,12 +4,15 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.telephony.PhoneStateListener
 import android.provider.ContactsContract
 import android.telecom.TelecomManager
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import androidx.annotation.RequiresApi
 import app.seb3thehacker.gearslip.GearslipLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +46,7 @@ object CarCalls {
     val state: StateFlow<CallUiState> = _state.asStateFlow()
 
     private var telephony: TelephonyManager? = null
-    private var watcher: TelephonyCallback? = null
+    private var watcher: Any? = null
     private var pendingRespond: ((allow: Boolean) -> Unit)? = null
     private var ringingCaller: Caller? = null
 
@@ -56,6 +59,15 @@ object CarCalls {
         if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) return
         audio = context.getSystemService(android.media.AudioManager::class.java)
         val manager = context.getSystemService(TelephonyManager::class.java) ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            startModern(context, manager)
+        } else {
+            startLegacy(manager)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun startModern(context: Context, manager: TelephonyManager) {
         val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
             override fun onCallStateChanged(state: Int) = onPhoneState(state)
         }
@@ -64,15 +76,39 @@ object CarCalls {
             .onFailure { GearslipLog.w("calls: could not watch call state: ${it.message}") }
     }
 
+    @Suppress("DEPRECATION")
+    private fun startLegacy(manager: TelephonyManager) {
+        val listener = object : PhoneStateListener() {
+            @Suppress("OVERRIDE_DEPRECATION")
+            override fun onCallStateChanged(state: Int, phoneNumber: String?) = onPhoneState(state)
+        }
+        runCatching { manager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE) }
+            .onSuccess { telephony = manager; watcher = listener }
+            .onFailure { GearslipLog.w("calls: could not watch call state: ${it.message}") }
+    }
+
     fun stop() {
-        val callback = watcher ?: return
-        runCatching { telephony?.unregisterTelephonyCallback(callback) }
+        val currentWatcher = watcher ?: return
+        val manager = telephony
+        if (manager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                stopModern(manager, currentWatcher)
+            } else {
+                @Suppress("DEPRECATION")
+                runCatching { manager.listen(currentWatcher as PhoneStateListener, PhoneStateListener.LISTEN_NONE) }
+            }
+        }
         telephony = null
         watcher = null
         pendingRespond = null
         ringingCaller = null
         unmute()
         _state.value = CallUiState.None
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun stopModern(manager: TelephonyManager, watcher: Any) {
+        runCatching { manager.unregisterTelephonyCallback(watcher as TelephonyCallback) }
     }
 
     private fun onPhoneState(state: Int) {

@@ -117,11 +117,16 @@ fun CarSettingsScreen() {
                     item {
                         ChoiceRow(
                             stringResource(R.string.car_app_theme),
-                            listOf(AppTheme.PHONE to stringResource(R.string.choice_theme_phone), AppTheme.LIGHT to stringResource(R.string.choice_theme_light), AppTheme.DARK to stringResource(R.string.choice_theme_dark)),
+                            listOf(
+                                AppTheme.PHONE to stringResource(R.string.choice_theme_phone),
+                                AppTheme.LIGHT to stringResource(R.string.choice_theme_light),
+                                AppTheme.DARK to stringResource(R.string.choice_theme_dark),
+                                AppTheme.APOLLO_PURPLE to stringResource(R.string.choice_theme_apollo_purple),
+                            ),
                             theme,
                         ) { CarSettings.setAppTheme(it) }
                     }
-                    if (theme != AppTheme.LIGHT) item {
+                    if (theme != AppTheme.LIGHT && theme != AppTheme.APOLLO_PURPLE) item {
                         ChoiceRow(
                             stringResource(R.string.car_dark_mode),
                             listOf(
@@ -262,7 +267,6 @@ fun CarSettingsScreen() {
                     }
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SubGroup(stringResource(R.string.settings_about))
                             Info(stringResource(R.string.carset_version), app.seb3thehacker.gearslip.BuildConfig.VERSION_NAME)
                             Info(stringResource(R.string.carset_build), app.seb3thehacker.gearslip.BuildConfig.VERSION_CODE.toString())
                             SwitchRow(

@@ -15,8 +15,10 @@ import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.IBinder
 import android.os.Process
+import androidx.core.content.IntentCompat
 import app.seb3thehacker.gearslip.GearslipLog
 import kotlin.math.abs
 
@@ -77,7 +79,7 @@ class AudioCaptureService : Service() {
             return START_NOT_STICKY
         }
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
-        val data = intent?.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
+        val data = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_RESULT_DATA, Intent::class.java) }
         if (data == null) {
             GearslipLog.e("audio: started without a consent result")
             CarAudio.denied()
@@ -90,7 +92,11 @@ class AudioCaptureService : Service() {
         // Without the permission, claiming it would crash, so it's left off.
         val micGranted = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         val type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
-            (if (micGranted) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
+            (if (micGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            } else {
+                0
+            })
         startForeground(NOTIFICATION_ID, notification(), type)
         ScreenShareGuard.lift(this)
         projection = try {
@@ -238,7 +244,7 @@ class AudioCaptureService : Service() {
         )
         return Notification.Builder(this, CHANNEL)
             .setContentTitle("Playing to the car")
-            .setContentText("Gearslip is sending a media app's audio to the car.")
+            .setContentText("Apollo AA is sending a media app's audio to the car.")
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off)
             .setOngoing(true)
             .addAction(Notification.Action.Builder(null, "Stop", stop).build())

@@ -1,9 +1,73 @@
 package app.seb3thehacker.gearslip.car.theme
 
+import android.content.Context
+import android.os.Build
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import app.seb3thehacker.gearslip.car.AppTheme
+
+fun AppTheme.isDark(systemDark: Boolean): Boolean = when (this) {
+    AppTheme.PHONE -> systemDark
+    AppTheme.LIGHT -> false
+    AppTheme.DARK, AppTheme.APOLLO_PURPLE -> true
+}
+
+fun gearslipColorScheme(
+    context: Context,
+    theme: AppTheme,
+    systemDark: Boolean,
+    style: DarkStyle,
+): ColorScheme {
+    if (theme == AppTheme.APOLLO_PURPLE) return apolloPurpleColorScheme()
+
+    val dark = theme.isDark(systemDark)
+    val scheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else {
+        if (dark) darkColorScheme() else lightColorScheme()
+    }
+    return scheme.withTintedSurfaces(dark, style)
+}
+
+private fun apolloPurpleColorScheme() = darkColorScheme(
+    primary = Color(0xFFD0A1FF),
+    onPrimary = Color(0xFF2A004C),
+    primaryContainer = Color(0xFF592485),
+    onPrimaryContainer = Color(0xFFF3DCFF),
+    inversePrimary = Color(0xFF7540A2),
+    secondary = Color(0xFFD2B8ED),
+    onSecondary = Color(0xFF35204B),
+    secondaryContainer = Color(0xFF4D3566),
+    onSecondaryContainer = Color(0xFFF0DFFF),
+    tertiary = Color(0xFFF0B7E8),
+    onTertiary = Color(0xFF4B173F),
+    tertiaryContainer = Color(0xFF67305B),
+    onTertiaryContainer = Color(0xFFFFD8F4),
+    background = Color(0xFF05030A),
+    onBackground = Color(0xFFF5EFFA),
+    surface = Color(0xFF09060F),
+    onSurface = Color(0xFFF5EFFA),
+    surfaceVariant = Color(0xFF261B35),
+    onSurfaceVariant = Color(0xFFD0C3DE),
+    surfaceTint = Color(0xFFD0A1FF),
+    inverseSurface = Color(0xFFF5EFFA),
+    inverseOnSurface = Color(0xFF211A27),
+    outline = Color(0xFF9889A8),
+    outlineVariant = Color(0xFF51445E),
+    surfaceDim = Color(0xFF05030A),
+    surfaceBright = Color(0xFF30233D),
+    surfaceContainerLowest = Color(0xFF030107),
+    surfaceContainerLow = Color(0xFF0D0914),
+    surfaceContainer = Color(0xFF120D1A),
+    surfaceContainerHigh = Color(0xFF1B1425),
+    surfaceContainerHighest = Color(0xFF261D32),
+)
 
 /**
  * The phone's Material You colours, with its accent washed over the surfaces. Material You's own

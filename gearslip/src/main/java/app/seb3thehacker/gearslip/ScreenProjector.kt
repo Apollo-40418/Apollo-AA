@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.os.SystemClock
+import android.os.Build
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.ContextThemeWrapper
@@ -115,6 +116,7 @@ class ScreenProjector(private val context: Context) {
      * the per-app one out, so the car screen stayed in the phone's language.
      */
     private fun withAppLanguage(context: Context): Context {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return context
         val locales = this.context.getSystemService(LocaleManager::class.java)?.applicationLocales
         if (locales == null || locales.isEmpty) return context
         val config = Configuration(context.resources.configuration).apply { setLocales(locales) }

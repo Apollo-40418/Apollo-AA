@@ -5,7 +5,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.background
 import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
@@ -34,12 +33,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.seb3thehacker.gearslip.AppSettings
-import app.seb3thehacker.gearslip.BuildConfig
+import app.seb3thehacker.gearslip.PlatformPermissions
 import app.seb3thehacker.gearslip.CertProvider
 import app.seb3thehacker.gearslip.stats.UsageStats
 
@@ -95,28 +93,25 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { CertSummary.read(context) } }
     }
     LaunchedEffect(Unit) {
-        if (!needsSetupGuide &&
-            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (!needsSetupGuide && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            !PlatformPermissions.hasNotificationPermission(context)
         ) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
-    // On a debug build, Home's yellow header runs up behind the status bar, whose icons then go dark.
-    val debugHeader = BuildConfig.DEBUG && screen == Screen.HOME
     val view = LocalView.current
     val darkTheme = gearslipDark()
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = debugHeader || !darkTheme
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
     }
 
     Column(Modifier.fillMaxSize()) {
         Spacer(
             Modifier
                 .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .background(if (debugHeader) DebugYellow else Color.Transparent),
+                .windowInsetsTopHeight(WindowInsets.statusBars),
         )
 
         Column(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) {
@@ -142,7 +137,6 @@ fun GearslipApp(onDisconnect: () -> Unit, onRequestCallScreening: () -> Unit) {
                 Screen.SETTINGS -> SettingsScreen(
                     onBack = { screen = Screen.HOME },
                     onOpenRecommendedApps = { settingsAtUsageNotes = false; screen = Screen.RECOMMENDED_APPS },
-                    onReplayTutorial = { screen = Screen.SETUP_GUIDE },
                     atUsageNotes = settingsAtUsageNotes,
                 )
                 Screen.RECOMMENDED_APPS -> RecommendedAppsScreen(onBack = { screen = Screen.SETTINGS })

@@ -84,7 +84,7 @@ object BrowserSettings {
             bookmarksFlow.value = if (p.contains(KEY_BOOKMARKS)) readBookmarks(p.getString(KEY_BOOKMARKS, "[]").orEmpty()) else DEFAULT_BOOKMARKS
             searchFlow.value = SearchEngine.entries.firstOrNull { it.id == p.getString(KEY_SEARCH, null) } ?: SearchEngine.DUCKDUCKGO
             adBlockFlow.value = p.getBoolean(KEY_ADBLOCK, true)
-            youTubeFlow.value = p.getBoolean(KEY_YOUTUBE, true)
+            youTubeFlow.value = p.getBoolean(KEY_YOUTUBE, false)
             listsFlow.value = readLists(p)
             prefs = p
         }

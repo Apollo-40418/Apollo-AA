@@ -67,7 +67,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.seb3thehacker.gearslip.BuildConfig
 import app.seb3thehacker.gearslip.SessionStatus
 import app.seb3thehacker.gearslip.notify.TestMessage
 import app.seb3thehacker.gearslip.stats.WorkedPrompt
@@ -146,25 +145,17 @@ fun HomeScreen(
         }
         // Sharing just went on from the "it worked" ask: a little thanks.
         if (celebrate) ConfettiFall(onDone = WorkedPrompt::celebrated)
-        // The usage notes ask comes first; the donation ask waits until that's answered.
-        if (workedCar == null) DonateDialog(live)
     }
 }
-
-/** Debug builds wear a yellow header, behind the status bar too, so they're never mistaken for a release install. */
-internal val DebugYellow = Color(0xFFF5C518)
-private val OnDebugYellow = Color(0xFF2A2200)
 
 /** The app's name, version and Settings, fixed above Home's scrolling cards. */
 @Composable
 private fun HomeHeader(onOpenSettings: () -> Unit) {
-    val debug = BuildConfig.DEBUG
-    val content = if (debug) OnDebugYellow else MaterialTheme.colorScheme.onBackground
-    Surface(color = if (debug) DebugYellow else Color.Transparent, contentColor = content) {
+    Surface(color = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Gearslip",
+                    "Apollo AA",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -175,9 +166,9 @@ private fun HomeHeader(onOpenSettings: () -> Unit) {
             }
             val version = "v${LocalContext.current.appVersionName()}"
             Text(
-                if (debug) stringResource(R.string.home_debug_build, version) else version,
+                version,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (debug) content else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

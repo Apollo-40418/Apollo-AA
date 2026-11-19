@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import app.seb3thehacker.gearslip.GearslipLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,7 +71,9 @@ object LocationCheck {
         val r = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) = check()
         }
-        context.registerReceiver(r, IntentFilter(LocationManager.MODE_CHANGED_ACTION), Context.RECEIVER_EXPORTED)
+        ContextCompat.registerReceiver(
+            context, r, IntentFilter(LocationManager.MODE_CHANGED_ACTION), ContextCompat.RECEIVER_EXPORTED,
+        )
         receiver = r
     }
 

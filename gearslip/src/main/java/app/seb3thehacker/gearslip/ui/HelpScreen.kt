@@ -4,7 +4,8 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.BuildConfig
-import app.seb3thehacker.gearslip.car.CarSettings
+import app.seb3thehacker.gearslip.PlatformPermissions
+import app.seb3thehacker.gearslip.audio.ScreenShareGuard
 import app.seb3thehacker.gearslip.stats.UsageStats
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,13 +29,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 /**
  * One step: a sentence that says what to do, and optionally how.
@@ -49,6 +53,7 @@ private class Step(
     val command: String? = null,
     @param:StringRes val buttonLabel: Int? = null,
     val onClick: (() -> Unit)? = null,
+    val adbGranted: Boolean? = null,
 )
 
 private val FIRST_DRIVE = listOf(
@@ -81,16 +86,18 @@ private fun inTheCar(grapheneOs: Boolean, onRequestCallScreening: () -> Unit) = 
     ),
 )
 
-private val USB_AUDIO = listOf(
+private fun usbAudioSteps(projectMediaGranted: Boolean, secureSettingsGranted: Boolean) = listOf(
     Step(
         R.string.help_prompt,
         R.string.help_prompt_detail,
         command = "adb shell appops set ${BuildConfig.APPLICATION_ID} PROJECT_MEDIA allow",
+        adbGranted = projectMediaGranted,
     ),
     Step(
         R.string.help_readable,
         R.string.help_readable_detail,
         command = "adb shell pm grant ${BuildConfig.APPLICATION_ID} android.permission.WRITE_SECURE_SETTINGS",
+        adbGranted = secureSettingsGranted,
     ),
 )
 
@@ -100,7 +107,17 @@ private val USB_AUDIO = listOf(
 fun HelpScreen(onBack: () -> Unit, onRequestCallScreening: () -> Unit) {
     val context = LocalContext.current
     val car = remember(onRequestCallScreening) { inTheCar(UsageStats.isGrapheneOs(context), onRequestCallScreening) }
-    val usb by CarSettings.pipeAudio.collectAsState()
+    var carsDialogOpen by remember { mutableStateOf(false) }
+    var projectMediaGranted by remember(context) { mutableStateOf(PlatformPermissions.hasProjectMediaOp(context)) }
+    var secureSettingsGranted by remember(context) { mutableStateOf(ScreenShareGuard.canLift(context)) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            projectMediaGranted = PlatformPermissions.hasProjectMediaOp(context)
+            secureSettingsGranted = ScreenShareGuard.canLift(context)
+            delay(1_500)
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -131,15 +148,19 @@ fun HelpScreen(onBack: () -> Unit, onRequestCallScreening: () -> Unit) {
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
                 )
                 FilledTonalButton(
-                    onClick = { GearslipLinks.open(context, GearslipLinks.CARS) },
+                    onClick = { carsDialogOpen = true },
                     modifier = Modifier.padding(16.dp),
                 ) { Text(stringResource(R.string.help_full_list)) }
             }
             Steps(stringResource(R.string.help_first_drive), FIRST_DRIVE)
             Steps(stringResource(R.string.help_in_car), car)
-            if (usb) Steps(stringResource(R.string.help_usb_audio), USB_AUDIO)
+            Steps(
+                stringResource(R.string.help_usb_audio),
+                usbAudioSteps(projectMediaGranted, secureSettingsGranted),
+            )
             Spacer(Modifier.height(16.dp))
         }
+        if (carsDialogOpen) CarsDialog(onDismiss = { carsDialogOpen = false })
     }
 }
 
@@ -165,7 +186,7 @@ private fun Steps(title: String, steps: List<Step>) {
                     step.detail?.let {
                         Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    step.command?.let { CopyableCommand(it) }
+                    step.command?.let { CopyableCommand(it, adbGranted = step.adbGranted) }
                     if (step.onClick != null) {
                         FilledTonalButton(onClick = step.onClick, modifier = Modifier.padding(top = 4.dp)) {
                             Text(stringResource(step.buttonLabel ?: R.string.guide_open))

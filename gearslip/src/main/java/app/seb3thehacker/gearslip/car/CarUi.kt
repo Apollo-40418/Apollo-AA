@@ -44,8 +44,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -78,7 +76,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.GsColors
-import app.seb3thehacker.gearslip.car.theme.withTintedSurfaces
 import app.seb3thehacker.gearslip.car.theme.GsIconBox
 import app.seb3thehacker.gearslip.car.theme.GsIconButton
 import app.seb3thehacker.gearslip.car.theme.GsButton
@@ -86,6 +83,8 @@ import app.seb3thehacker.gearslip.car.theme.GsTone
 import app.seb3thehacker.gearslip.car.theme.gsColors
 import app.seb3thehacker.gearslip.car.theme.GsThemes
 import app.seb3thehacker.gearslip.car.theme.LocalGsTheme
+import app.seb3thehacker.gearslip.car.theme.gearslipColorScheme
+import app.seb3thehacker.gearslip.car.theme.isDark
 import app.seb3thehacker.gearslip.media.CarMedia
 import app.seb3thehacker.gearslip.media.MediaArt
 import androidx.compose.ui.platform.LocalContext
@@ -117,12 +116,8 @@ fun CarUi() {
     val mediaApp by CarServices.mediaApp.collectAsState()
     val darkOutside by CarEnvironment.darkOutside.collectAsState()
     val appContext = LocalContext.current.applicationContext
-    val dark = when (appTheme) {
-        AppTheme.PHONE -> phoneDark
-        AppTheme.LIGHT -> false
-        AppTheme.DARK -> true
-    }
-    val colors = (if (dark) dynamicDarkColorScheme(appContext) else dynamicLightColorScheme(appContext)).withTintedSurfaces(dark, darkStyle)
+    val dark = appTheme.isDark(phoneDark)
+    val colors = gearslipColorScheme(appContext, appTheme, phoneDark, darkStyle)
     val base = LocalDensity.current
     val insets by CarEnvironment.insets.collectAsState()
     val navigator = remember {
@@ -353,14 +348,6 @@ fun CarUi() {
                         VoiceHelpOverlay(Modifier.align(Alignment.Center))
                         CallOverlay()
                         AssistantOverlay(Modifier.align(Alignment.BottomCenter).padding(bottom = homeInset))
-                        val badge by CarSettings.debugBadge.collectAsState()
-                        if (app.seb3thehacker.gearslip.BuildConfig.DEBUG && badge) {
-                            // Bottom corner, not top: a screen's own header almost always puts
-                            // something in the top-right (settings, search, a Liked Songs
-                            // shortcut) and this badge used to sit right on top of it, hiding
-                            // whatever the screen drew there.
-                            DebugBuildBadge(Modifier.align(Alignment.BottomEnd).padding(bottom = homeInset))
-                        }
                         run {
                             androidx.compose.animation.AnimatedVisibility(
                                 if (fullscreen) CarFullscreen.revealed || onCall else barShown,
@@ -491,27 +478,6 @@ private fun AppWontStart(app: String, onBack: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         GsButton(onClick = onBack, tone = GsTone.Tonal) { Text(stringResource(R.string.back)) }
-    }
-}
-
-/**
- * Marks a debug build on the car screen itself, not just the phone's Home screen - the one
- * that matters while driving, since a debug build is slower and less tested than what ships.
- */
-@Composable
-private fun DebugBuildBadge(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.padding(6.dp),
-        color = MaterialTheme.colorScheme.error,
-        contentColor = MaterialTheme.colorScheme.onError,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Text(
-            "DEBUG BUILD",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-        )
     }
 }
 

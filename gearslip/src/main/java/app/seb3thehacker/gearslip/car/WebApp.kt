@@ -234,7 +234,7 @@ fun WebApp(content: String) {
                 }
             },
             // Pages that honour it follow the darkness outside; a first, tweakable use of the signal.
-            update = { it.settings.isAlgorithmicDarkeningAllowed = darkOutside },
+            update = { androidx.webkit.WebSettingsCompat.setAlgorithmicDarkeningAllowed(it.settings, darkOutside) },
             onRelease = { it.destroy() },
         )
         if (atStart) {

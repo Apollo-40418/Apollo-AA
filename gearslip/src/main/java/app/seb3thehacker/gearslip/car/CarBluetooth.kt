@@ -14,9 +14,12 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.os.Build
 import androidx.car.app.CarToast
+import androidx.core.content.ContextCompat
 import app.seb3thehacker.gearslip.AppSettings
 import app.seb3thehacker.gearslip.GearslipLog
+import app.seb3thehacker.gearslip.PlatformPermissions
 import app.seb3thehacker.gearslip.Protobuf
 import app.seb3thehacker.gearslip.ServiceDiscovery
 import app.seb3thehacker.gearslip.Wire
@@ -115,7 +118,9 @@ object CarBluetooth {
         val asked = AppSettings.getString(context, KEY_ADDRESS_ASKED, "").split(",").filter { it.isNotEmpty() }
         if (hash(carAddress) in asked) return
         AppSettings.putString(context, KEY_ADDRESS_ASKED, (asked + hash(carAddress)).distinct().joinToString(","))
-        val name = runCatching { device.alias ?: device.name }.getOrNull()?.takeIf { it.isNotBlank() }
+        val name = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) device.alias else device.name
+        }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.bt_address_your_car)
         AppSettings.putString(context, KEY_ADDRESS_ASK, name)
         _addressWanted.value = name
@@ -311,7 +316,9 @@ object CarBluetooth {
                 }
             }
         }
-        context.registerReceiver(r, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), Context.RECEIVER_EXPORTED)
+        ContextCompat.registerReceiver(
+            context, r, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), ContextCompat.RECEIVER_EXPORTED,
+        )
         receiver = r
     }
 
@@ -336,7 +343,7 @@ object CarBluetooth {
             return null
         }
         val address = car?.service?.carAddress ?: return null
-        if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (!PlatformPermissions.hasBluetoothConnect(context)) {
             log.i("can't check pairing: the Bluetooth permission isn't granted")
             return null
         }

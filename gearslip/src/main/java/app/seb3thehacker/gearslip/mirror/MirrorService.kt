@@ -13,6 +13,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import androidx.core.content.IntentCompat
 import app.seb3thehacker.gearslip.GearslipLog
 
 /**
@@ -35,7 +36,7 @@ class MirrorService : Service() {
         }
 
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
-        val data = intent?.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
+        val data = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_RESULT_DATA, Intent::class.java) }
         if (data == null) {
             GearslipLog.e("mirror service started without a consent result")
             stopSelf()

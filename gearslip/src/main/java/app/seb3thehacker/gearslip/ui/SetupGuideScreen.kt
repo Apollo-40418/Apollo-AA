@@ -46,8 +46,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.key
 import app.seb3thehacker.gearslip.BuildConfig
+import app.seb3thehacker.gearslip.PlatformPermissions
 import android.Manifest
-import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.app.role.RoleManager
 import android.content.ComponentName
@@ -134,16 +134,6 @@ private fun glyph(icon: ImageVector): @Composable (Color) -> Unit = { tint ->
 /** True once every permission in [permissions] is already granted - nothing left for this page to do. */
 private fun granted(context: Context, permissions: Array<String>): Boolean =
     permissions.all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
-
-/** Whether Gearslip already holds the hidden `PROJECT_MEDIA` app-op an adb command grants -
- * checked the same way the platform checks it, since there is no public permission for it. */
-private fun hasProjectMediaOp(context: Context): Boolean {
-    val ops = context.getSystemService(AppOpsManager::class.java) ?: return false
-    val mode = runCatching {
-        ops.unsafeCheckOpNoThrow("android:project_media", android.os.Process.myUid(), context.packageName)
-    }.getOrDefault(AppOpsManager.MODE_IGNORED)
-    return mode == AppOpsManager.MODE_ALLOWED
-}
 
 private fun hasCallScreeningRole(context: Context): Boolean {
     val roleManager = context.getSystemService(RoleManager::class.java) ?: return false
@@ -232,7 +222,9 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
             ),
         )
     }
-    if (!granted(context, arrayOf(Manifest.permission.BLUETOOTH_CONNECT))) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S &&
+        !granted(context, arrayOf(Manifest.permission.BLUETOOTH_CONNECT))
+    ) {
         add(
             GuidePage(
                 title = context.getString(R.string.guide_bluetooth_title),
@@ -243,7 +235,9 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
         )
     }
 
-    if (!granted(context, arrayOf(Manifest.permission.POST_NOTIFICATIONS))) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+        !granted(context, arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+    ) {
         add(
             GuidePage(
                 title = context.getString(R.string.guide_notifications_title),
@@ -321,7 +315,7 @@ private fun pages(context: Context, onRequestCallScreening: () -> Unit): List<Gu
     }
 
     // --- Optional: each is skipped once its actual effect is already in place --------
-    if (!hasProjectMediaOp(context)) {
+    if (!PlatformPermissions.hasProjectMediaOp(context)) {
         add(
             GuidePage(
                 title = context.getString(R.string.guide_audio_prompt_title),

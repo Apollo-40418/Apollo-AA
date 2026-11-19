@@ -1,12 +1,15 @@
 package app.seb3thehacker.gearslip.mirror
 
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.PointF
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
 import android.view.Surface
 import android.view.WindowManager
+import android.os.Build
+import android.util.DisplayMetrics
 import app.seb3thehacker.gearslip.GearslipLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -128,8 +131,15 @@ object PhoneMirror {
      */
     fun mapToPhone(context: Context, x: Float, y: Float): PointF? {
         if (frameWidth == 0 || frameHeight == 0) return null
-        val bounds = context.getSystemService(WindowManager::class.java)
-            ?.currentWindowMetrics?.bounds ?: return null
+        val windowManager = context.getSystemService(WindowManager::class.java) ?: return null
+        val bounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds
+        } else {
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getRealMetrics(metrics)
+            Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+        }
         val phoneW = bounds.width().toFloat()
         val phoneH = bounds.height().toFloat()
         if (phoneW <= 0f || phoneH <= 0f) return null

@@ -93,7 +93,7 @@ fun CarPreviewScreen(onBack: () -> Unit) {
     // The frame is drawn the same way in both layouts; only what surrounds it differs.
     val frameContent: @Composable (Modifier) -> Unit = { modifier ->
         if (projector == null) {
-            Text("Gearslip is this device's home screen, so the car UI is already showing there.", modifier)
+            Text("Apollo AA is this device's home screen, so the car UI is already showing there.", modifier)
         } else {
             CarFrame(projector, width, height, modifier.aspectRatio(width.toFloat() / height))
         }
@@ -305,7 +305,15 @@ private fun previewFrame(
         app.seb3thehacker.gearslip.car.PreviewSize.CUSTOM ->
             custom?.let { carLike(it.width, it.height) } ?: Triple(lastCar.width, lastCar.height, lastCar.densityDpi)
         app.seb3thehacker.gearslip.car.PreviewSize.FILL -> {
-            val bounds = context.getSystemService(android.view.WindowManager::class.java).maximumWindowMetrics.bounds
+            val windowManager = context.getSystemService(android.view.WindowManager::class.java)
+            val bounds = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                windowManager.maximumWindowMetrics.bounds
+            } else {
+                val metrics = android.util.DisplayMetrics()
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.getRealMetrics(metrics)
+                android.graphics.Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+            }
             // Landscape, whichever way the device is held right now.
             carLike(maxOf(bounds.width(), bounds.height()) / 2 * 2, minOf(bounds.width(), bounds.height()) / 2 * 2)
         }

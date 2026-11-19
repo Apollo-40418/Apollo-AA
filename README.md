@@ -14,6 +14,9 @@ Gearslip speaks the Android Auto protocol straight to your car, over USB or wire
 Google software in the path. Map, music, and messaging apps draw their car screens through
 Gearslip, and it adds a player, calls, voice, and a web browser of its own.
 
+Gearslip requires Android 10 (API 29) or newer. Wireless auto-connect requires Android 12 or
+newer; on Android 10 and 11, start a wireless connection from Gearslip.
+
 > [!WARNING]
 > Gearslip is **alpha software**. It can drop the connection, freeze the car screen, or fail
 > to start, and a new release can break a car that worked before. Set it up while parked, and
@@ -61,7 +64,9 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
   interrupt you. The rest wait on the dashboard. Music pauses while Gearslip speaks or
   listens.
 - **Voice.** Tap the mic or press the talk button on the wheel. Say "help" for the full list.
-- **The web.** A browser with an address bar, back and forward, and its own keyboard.
+- **The web.** A browser with an address bar, back and forward, and its own keyboard. It can play
+  compatible web video while parked; YouTube is bookmarked by default, and you can bookmark your
+  Jellyfin server. YouTube ad skipping is opt-in because it can interfere with playback.
 - **Weather and the day ahead.** A dashboard shows the week's calendar beside the weather.
 - **Your apps, your order.** Apps group by kind. Press and hold one to move it, and hide
   the ones you don't use from the Apps card on the phone.
@@ -97,7 +102,7 @@ Check that your copy of Gearslip is genuine with
 with the output of `apksigner verify --print-certs`.
 
 ```
-app.seb3thehacker.gearslip
+com.apollo.app_aa
 4C:C5:6E:BD:D1:3A:54:D2:60:EC:A9:B7:E2:B2:AE:6B:30:E2:F2:25:BF:DA:8F:50:8F:07:09:ED:F0:84:94:8B
 ```
 
@@ -174,8 +179,11 @@ The APK lands at `build/Gearslip-debug.apk`.
 
 A release build needs a signing key. Copy `keystore.properties.example` to
 `keystore.properties`, fill in your own values, and run
-`./gradlew :gearslip:assembleRelease`. Git ignores both the properties file and the
-keystore. Without them, the debug build still works.
+`./gradlew :gearslip:assembleRelease -PgearslipVersionName=1.0.0 -PgearslipVersionCode=100009`.
+With a signing key, the release APK lands at `build/Apollo_Android_Auto.apk`; without one,
+Gradle produces `build/Apollo_Android_Auto-unsigned.apk`, which cannot be installed until signed.
+Keep the release keystore and its passwords backed up: future updates must use the same key.
+Git ignores both the properties file and the keystore. Without them, the debug build still works.
 
 ## Writing apps for Gearslip
 

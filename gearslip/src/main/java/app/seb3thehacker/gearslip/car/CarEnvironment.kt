@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import java.util.Calendar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -117,8 +118,9 @@ object CarEnvironment {
         running = true
         appContext = context.applicationContext
         setPhoneTheme(context.resources.configuration)
-        val sticky = context.applicationContext.registerReceiver(
-            batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), Context.RECEIVER_NOT_EXPORTED,
+        val sticky = ContextCompat.registerReceiver(
+            context.applicationContext, batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         sticky?.let(::readBattery)
         handler.post(tick)

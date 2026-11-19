@@ -98,7 +98,7 @@ object CarKeys {
         // then ended the session (issue #43).
         val media = CarServices.mediaOrNull()
         if (media == null && keyCode in MEDIA_KEYS) {
-            GearslipLog.i("keys: $keyCode before the car shows Gearslip - no media app to send it to yet")
+            GearslipLog.i("keys: $keyCode before the car shows Apollo AA - no media app to send it to yet")
             return true
         }
         when (keyCode) {

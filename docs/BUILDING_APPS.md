@@ -13,7 +13,7 @@ Write a templated app when your app fits the Car App Library's templates, becaus
 and it also runs on Android Auto. Write a media app when you ship audio. Write a Gearslip app
 when you want a screen the Car App Library cannot describe.
 
-Gearslip's package name is `app.seb3thehacker.gearslip`. It declares
+Apollo AA's package name is `com.apollo.app_aa`. It declares
 `android.car.permission.TEMPLATE_RENDERER`.
 
 ---
@@ -39,7 +39,7 @@ entry:
 ```xml
 <!-- res/values/arrays.xml -->
 <array name="hosts_allowlist">
-    <item>4cc56ebdd13a54d260eca9b7e2b2ae6b30e2f225bfda8f508f0709edf084948b,app.seb3thehacker.gearslip</item>
+    <item>4cc56ebdd13a54d260eca9b7e2b2ae6b30e2f225bfda8f508f0709edf084948b,com.apollo.app_aa</item>
 </array>
 ```
 

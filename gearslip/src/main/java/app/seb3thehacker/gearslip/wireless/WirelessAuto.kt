@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentSender
 import android.os.Handler
 import android.os.Looper
+import android.os.Build
 import app.seb3thehacker.gearslip.GearslipLog
 import app.seb3thehacker.gearslip.GearslipActivity
 
@@ -43,6 +44,7 @@ object WirelessAuto {
      */
     @SuppressLint("MissingPermission")
     fun connectedByHand(context: Context, device: BluetoothDevice) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val manager = context.getSystemService(CompanionDeviceManager::class.java) ?: return
         val address = device.address
         if (isCompanion(manager, address)) {
@@ -58,7 +60,7 @@ object WirelessAuto {
             .addDeviceFilter(BluetoothDeviceFilter.Builder().setAddress(address).build())
             .setSingleDevice(true)
             .build()
-        log.i("auto-connect: asking Android to let Gearslip watch for ${WirelessLink.name(device)}")
+        log.i("auto-connect: asking Android to let Apollo AA watch for ${WirelessLink.name(device)}")
         @Suppress("DEPRECATION")
         manager.associate(request, object : CompanionDeviceManager.Callback() {
             @Deprecated("Deprecated in Java")
@@ -74,6 +76,7 @@ object WirelessAuto {
 
     /** True when the driver said no to this car connecting by itself, and it still can't. */
     fun declinedEarlier(context: Context, device: BluetoothDevice): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
         val manager = context.getSystemService(CompanionDeviceManager::class.java) ?: return false
         return !isCompanion(manager, device.address) &&
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(device.address, false)
@@ -105,6 +108,7 @@ object WirelessAuto {
 
     @SuppressLint("MissingPermission")
     private fun watch(context: Context, address: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val manager = context.getSystemService(CompanionDeviceManager::class.java) ?: return
         @Suppress("DEPRECATION")
         runCatching { manager.startObservingDevicePresence(address) }
@@ -117,7 +121,7 @@ object WirelessAuto {
 
     /** From [CarPresenceService]: the car is here, so bring Gearslip up to connect to it. */
     fun carAppeared(context: Context, address: String) {
-        log.i("auto-connect: a car Gearslip knows connected over Bluetooth")
+        log.i("auto-connect: a car Apollo AA knows connected over Bluetooth")
         runCatching {
             context.startActivity(
                 Intent(context, GearslipActivity::class.java)
@@ -125,6 +129,6 @@ object WirelessAuto {
                     .putExtra(EXTRA_ADDRESS, address)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
-        }.onFailure { log.w("auto-connect: couldn't open Gearslip (${it.message})") }
+        }.onFailure { log.w("auto-connect: couldn't open Apollo AA (${it.message})") }
     }
 }

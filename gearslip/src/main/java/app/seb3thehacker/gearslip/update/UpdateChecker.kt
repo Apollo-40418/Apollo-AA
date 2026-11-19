@@ -13,6 +13,7 @@ import android.hardware.usb.UsbManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -20,6 +21,7 @@ import androidx.core.graphics.drawable.toBitmap
 import app.seb3thehacker.gearslip.BuildConfig
 import app.seb3thehacker.gearslip.GearslipActivity
 import app.seb3thehacker.gearslip.GearslipLog
+import app.seb3thehacker.gearslip.PlatformPermissions
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.SessionStatus
 import app.seb3thehacker.gearslip.notify.CarMotion
@@ -218,9 +220,9 @@ object UpdateChecker {
                     key = "gearslip-update",
                     id = CarNotifications.nextId(),
                     packageName = app.packageName,
-                    appLabel = "Gearslip",
-                    title = "Gearslip ${release.version} is out",
-                    text = "Update in the Gearslip app or from GitHub",
+                    appLabel = "Apollo AA",
+                    title = "Apollo AA ${release.version} is out",
+                    text = "Update in the Apollo AA app or from GitHub",
                     postedAt = System.currentTimeMillis(),
                     icon = runCatching { app.packageManager.getApplicationIcon(app.packageName).toBitmap(96, 96) }.getOrNull(),
                     reply = null,
@@ -239,9 +241,9 @@ object UpdateChecker {
         else -> savedRelease(app)
     }
 
-    /** Posts "Gearslip X is out"; tapping it opens the app, where the Home card has the button. */
+    /** Posts "Apollo AA X is out"; tapping it opens the app, where the Home card has the button. */
     private fun notify(context: Context, release: Release): Boolean {
-        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
+        if (!PlatformPermissions.hasNotificationPermission(context)) return false
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, "Updates", NotificationManager.IMPORTANCE_DEFAULT),
         )
@@ -252,7 +254,7 @@ object UpdateChecker {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Gearslip ${release.version} is out")
+            .setContentTitle("Apollo AA ${release.version} is out")
             .setContentText("Tap to update.")
             .setContentIntent(open)
             .setAutoCancel(true)
@@ -324,7 +326,7 @@ object UpdateChecker {
         flow.value = State.Downloading(release, 0f)
         Thread({
             val dir = updatesDir(app).apply { deleteRecursively(); mkdirs() }
-            val apk = File(dir, "Gearslip-${release.version}.apk")
+            val apk = File(dir, "Apollo_Android_Auto-${release.version}.apk")
             flow.value = runCatching {
                 fetchApk(release, apk)
                 GearslipLog.i("update: downloaded ${release.version}")
@@ -376,7 +378,9 @@ object UpdateChecker {
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
             setAppPackageName(app.packageName)
             setSize(ready.apk.length())
-            setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
         }
         val id = installer.createSession(params)
         installer.openSession(id).use { session ->
@@ -441,7 +445,7 @@ object UpdateChecker {
         prefs(app).edit().remove(KEY_SILENT_VERSION).apply()
         if (version != BuildConfig.VERSION_NAME) return
         GearslipLog.i("update: now on $version, installed without asking")
-        if (app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        if (!PlatformPermissions.hasNotificationPermission(app)) return
         app.getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, "Updates", NotificationManager.IMPORTANCE_DEFAULT),
         )
@@ -470,7 +474,7 @@ object UpdateChecker {
             connectTimeout = 15_000
             readTimeout = 15_000
             setRequestProperty("Accept", "application/vnd.github+json")
-            setRequestProperty("User-Agent", "Gearslip/${BuildConfig.VERSION_NAME}")
+            setRequestProperty("User-Agent", "Apollo-AA/${BuildConfig.VERSION_NAME}")
         }
         try {
             if (conn.responseCode == 404) return null // no stable release yet
@@ -510,7 +514,7 @@ object UpdateChecker {
         val conn = (URL(release.apkUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
             readTimeout = 30_000
-            setRequestProperty("User-Agent", "Gearslip/${BuildConfig.VERSION_NAME}")
+            setRequestProperty("User-Agent", "Apollo-AA/${BuildConfig.VERSION_NAME}")
         }
         try {
             if (conn.responseCode !in 200..299) error("GitHub answered ${conn.responseCode}")

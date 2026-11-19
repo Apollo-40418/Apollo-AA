@@ -1,9 +1,9 @@
-! Gearslip bundled filter list
+! Apollo AA bundled filter list
 ! Built from EasyList and EasyPrivacy (https://easylist.to/), which are
 ! dual-licensed GPLv3 / CC BY-SA 3.0.
 ! Snapshot taken 2026-09-14. Comments and rules this engine cannot parse have
 ! been stripped; every remaining line is a rule the parser accepts.
-! This is only a starting point -- the browser settings in Gearslip
+! This is only a starting point -- the browser settings in Apollo AA
 ! downloads the current upstream lists, which then take precedence.
 &rb=&uuid=$third-party
 &subaffid=%$subdocument,third-party

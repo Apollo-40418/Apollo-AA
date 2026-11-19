@@ -9,7 +9,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
+import android.os.Looper
 import app.seb3thehacker.gearslip.GearslipLog
 import app.seb3thehacker.gearslip.SessionStatus
 import java.net.HttpURLConnection
@@ -119,6 +122,7 @@ object Weather {
         context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+    @Suppress("DEPRECATION")
     private fun locate(context: Context): Location? {
         if (!hasLocationPermission(context)) return null
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
@@ -127,13 +131,29 @@ object Weather {
             .maxByOrNull { it.time }
         if (known != null && System.currentTimeMillis() - known.time < FIX_MAX_AGE_MS) return known
 
-        val provider = listOf(LocationManager.FUSED_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
+        val providers = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+        }
+        val provider = providers
             .firstOrNull { it in manager.allProviders && manager.isProviderEnabled(it) }
             ?: return known
         val latch = CountDownLatch(1)
         var fresh: Location? = null
         runCatching {
-            manager.getCurrentLocation(provider, null, io) { fresh = it; latch.countDown() }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                manager.getCurrentLocation(provider, null, io) { fresh = it; latch.countDown() }
+            } else {
+                val listener = object : LocationListener {
+                    @Suppress("OVERRIDE_DEPRECATION")
+                    override fun onLocationChanged(location: Location) {
+                        fresh = location
+                        latch.countDown()
+                    }
+                }
+                manager.requestSingleUpdate(provider, listener, Looper.getMainLooper())
+            }
             latch.await(FIX_TIMEOUT_S, TimeUnit.SECONDS)
         }.onFailure { GearslipLog.w("weather: fresh fix failed: ${it.message}") }
         // A stale fix still gives the right city, which is all a forecast needs.

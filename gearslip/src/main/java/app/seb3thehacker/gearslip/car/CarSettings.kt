@@ -17,7 +17,7 @@ enum class Units { AUTO, IMPERIAL, METRIC }
 /** Where a new message shows: [NAV_BAR] turns the clock button into it, [CARD] floats a card top right. */
 
 /** The car UI's own colours. Separate from [NightMode], which is about the light outside (the map). */
-enum class AppTheme { PHONE, LIGHT, DARK }
+enum class AppTheme { PHONE, LIGHT, DARK, APOLLO_PURPLE }
 
 /** A screen's width and height in pixels, as someone typed it: "1280x480". */
 data class ScreenSize(val width: Int, val height: Int) {
@@ -81,7 +81,6 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_CAR_SENSORS = "car_sensors_enabled"
     private const val KEY_ADAPTIVE_VIDEO = "adaptive_video_enabled"
 private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
-    private const val KEY_DEBUG_BADGE = "debug_badge"
     private const val KEY_SEEN_SAFETY_WARNING = "car_seen_safety_warning"
     private const val KEY_UNITS = "car_units"
     private const val KEY_NAV_BAR = "car_nav_bar"
@@ -134,7 +133,6 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
     private val carSensorsFlow = MutableStateFlow(false)
     private val adaptiveVideoFlow = MutableStateFlow(false)
     private val clusterVideoFlow = MutableStateFlow(false)
-    private val debugBadgeFlow = MutableStateFlow(true)
     private val seenSafetyWarningFlow = MutableStateFlow(false)
     private val unitsFlow = MutableStateFlow(Units.AUTO)
 
@@ -365,14 +363,6 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
      */
     val clusterVideoEnabled: StateFlow<Boolean> = clusterVideoFlow
 
-    /** Debug builds only: the car screen's DEBUG BUILD badge, which screenshots for the README leave out. */
-    val debugBadge: StateFlow<Boolean> = debugBadgeFlow
-
-    fun setDebugBadge(on: Boolean) {
-        debugBadgeFlow.value = on
-        AppSettings.putString(app, KEY_DEBUG_BADGE, on.toString())
-    }
-
     /**
      * Whether the car screen's own "drive safely" warning has already been shown and dismissed
      * once, from this same install. Separate from the phone side's own compat/safety dialogs -
@@ -425,7 +415,6 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
         carSensorsFlow.value = AppSettings.getString(app, KEY_CAR_SENSORS, "false") == "true"
         adaptiveVideoFlow.value = AppSettings.getString(app, KEY_ADAPTIVE_VIDEO, "false") == "true"
         clusterVideoFlow.value = AppSettings.getString(app, KEY_CLUSTER_VIDEO, "false") == "true"
-        debugBadgeFlow.value = AppSettings.getString(app, KEY_DEBUG_BADGE, "true") == "true"
         seenSafetyWarningFlow.value = AppSettings.getString(app, KEY_SEEN_SAFETY_WARNING, "false") == "true"
         unitsFlow.value = runCatching {
             Units.valueOf(AppSettings.getString(app, KEY_UNITS, Units.AUTO.name))

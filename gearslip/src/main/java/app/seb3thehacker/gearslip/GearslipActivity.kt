@@ -15,6 +15,8 @@ import android.provider.Settings
 import android.view.MotionEvent
 import android.view.Surface
 import androidx.activity.ComponentActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ import app.seb3thehacker.gearslip.car.CarSettings
 import app.seb3thehacker.gearslip.car.CarUi
 import app.seb3thehacker.gearslip.car.Prefetch
 import app.seb3thehacker.gearslip.stats.UsageStats
+import app.seb3thehacker.gearslip.PlatformPermissions
 import app.seb3thehacker.gearslip.ui.GearslipApp
 import app.seb3thehacker.gearslip.ui.GearslipTheme
 import java.io.FileInputStream
@@ -147,7 +150,7 @@ class GearslipActivity : ComponentActivity(), Projection {
 
         GearslipLog.init(this)
         GearslipLog.installCrashHandler()
-        GearslipLog.i("Gearslip ready")
+        GearslipLog.i("Apollo AA ready")
         app.seb3thehacker.gearslip.wireless.WirelessLink.onConnected = { socket ->
             runOnUiThread { startWireless(socket) }
         }
@@ -209,7 +212,10 @@ class GearslipActivity : ComponentActivity(), Projection {
         PhoneMirror.onEnded = { runOnUiThread { showCarUi() } }
         CarAudio.onConsentRequested = { runOnUiThread { requestAudioCapture() } }
 
-        registerReceiver(detachReceiver, IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED), RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(
+            this, detachReceiver, IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         handleIntent(intent)
     }
 
@@ -352,10 +358,10 @@ class GearslipActivity : ComponentActivity(), Projection {
         // Switched off in Settings: the system shouldn't route the car here at all, but if it
         // does, leave the accessory alone.
         if (!AppSettings.gearslipEnabled(this)) {
-            GearslipLog.i("accessory attached, but Gearslip is switched off - not connecting")
+            GearslipLog.i("accessory attached, but Apollo AA is switched off - not connecting")
             return
         }
-        val accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY, UsbAccessory::class.java)
+        val accessory = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_ACCESSORY, UsbAccessory::class.java)
         if (accessory == null) {
             GearslipLog.e("attach intent carried no accessory")
             SessionStatus.failed("Accessory missing", "The system reported a USB attach but did not include the accessory.")
@@ -370,7 +376,7 @@ class GearslipActivity : ComponentActivity(), Projection {
     private fun connectToNearbyCar(address: String?) {
         if (address == null) return
         if (!AppSettings.gearslipEnabled(this)) {
-            GearslipLog.i("auto-connect: Gearslip is switched off - not connecting")
+            GearslipLog.i("auto-connect: Apollo AA is switched off - not connecting")
             return
         }
         if (descriptor != null) {
@@ -385,7 +391,7 @@ class GearslipActivity : ComponentActivity(), Projection {
             return
         }
         if (runner != null) closeAccessory(stopWireless = false)
-        if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        if (!PlatformPermissions.hasBluetoothConnect(this)) {
             GearslipLog.w("auto-connect: needs the Nearby devices permission")
             return
         }
@@ -413,7 +419,7 @@ class GearslipActivity : ComponentActivity(), Projection {
         val pfd = manager.openAccessory(accessory)
         if (pfd == null) {
             GearslipLog.e("openAccessory returned null - the session was claimed by someone else")
-            SessionStatus.failed("Accessory unavailable", "Another app claimed the USB accessory before Gearslip could open it.")
+            SessionStatus.failed("Accessory unavailable", "Another app claimed the USB accessory before Apollo AA could open it.")
             return
         }
         descriptor = pfd
@@ -435,7 +441,7 @@ class GearslipActivity : ComponentActivity(), Projection {
     private fun startWireless(socket: java.net.Socket) {
         closeAccessory(stopWireless = false)
         if (!AppSettings.gearslipEnabled(this)) {
-            GearslipLog.i("wireless: Gearslip is switched off - not connecting")
+            GearslipLog.i("wireless: Apollo AA is switched off - not connecting")
             runCatching { socket.close() }
             return
         }
@@ -503,7 +509,7 @@ class GearslipActivity : ComponentActivity(), Projection {
     private fun stepAside() {
         stepAsideOnVideo = false
         if (offerBluetooth.value || micBlockedNotice.value || approvingCar != null) return
-        GearslipLog.i("the car's screen is up - moving Gearslip off the phone's screen")
+        GearslipLog.i("the car's screen is up - moving Apollo AA off the phone's screen")
         moveTaskToBack(true)
     }
 

@@ -5,7 +5,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
+import android.os.Looper
 import app.seb3thehacker.gearslip.AppSettings
 import app.seb3thehacker.gearslip.GearslipLog
 import java.util.Locale
@@ -90,14 +93,32 @@ object SavedPlaces {
     private suspend fun locate(context: Context): Location? {
         if (!hasLocationPermission(context)) return null
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
-        val provider = listOf(LocationManager.FUSED_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        val providers = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+        }
+        val provider = providers
             .firstOrNull { it in manager.allProviders && manager.isProviderEnabled(it) }
         // A fresh fix: saving the spot you're standing on wants better than an hour-old one.
         val fresh = provider?.let {
             withTimeoutOrNull(FIX_TIMEOUT_MS) {
                 suspendCancellableCoroutine { done ->
                     runCatching {
-                        manager.getCurrentLocation(it, null, context.mainExecutor) { fix -> done.resume(fix) }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            manager.getCurrentLocation(it, null, context.mainExecutor) { fix -> done.resume(fix) }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val listener = object : LocationListener {
+                                @Suppress("OVERRIDE_DEPRECATION")
+                                override fun onLocationChanged(location: Location) {
+                                    if (done.isActive) done.resume(location)
+                                }
+                            }
+                            done.invokeOnCancellation { manager.removeUpdates(listener) }
+                            @Suppress("DEPRECATION")
+                            manager.requestSingleUpdate(it, listener, Looper.getMainLooper())
+                        }
                     }.onFailure { e ->
                         GearslipLog.w("places: fix failed: ${e.message}")
                         done.resume(null)

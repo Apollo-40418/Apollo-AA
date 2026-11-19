@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
  * it on the clipboard, which is the only way it reaches the computer from here anyway.
  */
 @Composable
-fun CopyableCommand(command: String) {
+fun CopyableCommand(command: String, adbGranted: Boolean? = null) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     Surface(
@@ -47,6 +47,13 @@ fun CopyableCommand(command: String) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
+            adbGranted?.let { granted ->
+                Text(
+                    stringResource(if (granted) R.string.help_adb_granted else R.string.help_adb_not_granted),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

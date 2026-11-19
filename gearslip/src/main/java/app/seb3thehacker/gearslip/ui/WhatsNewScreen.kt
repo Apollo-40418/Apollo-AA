@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -18,11 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -76,9 +79,56 @@ fun WhatsNewScreen(onBack: () -> Unit) {
                             Text(change, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
+
                 }
             }
             Spacer(Modifier.height(16.dp))
         }
     }
+
+}
+
+@Composable
+internal fun WhatsNewDialog(onDismiss: () -> Unit) {
+    val current = Changelog.current
+    val releases = current?.let(::listOf) ?: Changelog.releases
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_whats_new)) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                releases.forEach { release ->
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            if (release.versionCode == BuildConfig.VERSION_CODE) {
+                                stringResource(R.string.whats_new_this_version, release.versionName)
+                            } else {
+                                release.versionName
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        release.changes.forEach { change ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Box(
+                                    Modifier
+                                        .padding(top = 8.dp)
+                                        .size(6.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                )
+                                Text(change, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
+        },
+    )
 }

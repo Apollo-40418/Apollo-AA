@@ -1,6 +1,8 @@
 package app.seb3thehacker.gearslip
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import android.util.Log
 import java.io.File
 import java.text.SimpleDateFormat
@@ -22,7 +24,7 @@ import kotlinx.coroutines.flow.update
  */
 object GearslipLog {
 
-    const val TAG = "Gearslip"
+    const val TAG = "Apollo AA"
 
     private val stamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
     private val io = Executors.newSingleThreadExecutor()
@@ -52,7 +54,7 @@ object GearslipLog {
         val dir = context.getExternalFilesDir(null) ?: return
         val name = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         file = File(dir, "gearslip-$name.log")
-        i("log file: ${file?.absolutePath}")
+        i("log file opened")
         SessionReport.init(context)
         // One file per launch adds up; the newest are the ones anyone asks for.
         io.execute { logFiles(dir).drop(KEEP_FILES).forEach { it.delete() } }
@@ -68,14 +70,24 @@ object GearslipLog {
      * which is the one a driver shares after a drive that went wrong.
      */
     private fun lastExit(context: Context, dir: File) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         val am = context.getSystemService(android.app.ActivityManager::class.java) ?: return
         val seen = AppSettings.getString(context, KEY_EXIT_SEEN, "0").toLongOrNull() ?: 0L
         val exits = runCatching { am.getHistoricalProcessExitReasons(null, 0, 5) }.getOrDefault(emptyList())
             .filter { it.timestamp > seen }
         exits.firstOrNull()?.let { AppSettings.putString(context, KEY_EXIT_SEEN, it.timestamp.toString()) }
+        val exitReasons = mapOf(
+            android.app.ApplicationExitInfo.REASON_CRASH_NATIVE to "a native crash",
+            android.app.ApplicationExitInfo.REASON_ANR to "the app stopped responding (ANR)",
+            android.app.ApplicationExitInfo.REASON_LOW_MEMORY to "the phone ran low on memory",
+            android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE to "it used too much of the phone's resources",
+            android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE to "it failed to start",
+            android.app.ApplicationExitInfo.REASON_SIGNALED to "the system killed it",
+            android.app.ApplicationExitInfo.REASON_DEPENDENCY_DIED to "something it depends on died",
+        )
         val parse = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
         for (exit in exits.reversed()) {
-            val why = EXIT_REASONS[exit.reason] ?: continue
+            val why = exitReasons[exit.reason] ?: continue
             val at = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(exit.timestamp))
             val detail = buildString {
                 append("$at, $why")
@@ -96,6 +108,7 @@ object GearslipLog {
     }
 
     /** The main thread's stack from an ANR trace: what Gearslip was stuck doing. */
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun anrMainThread(exit: android.app.ApplicationExitInfo): String? = runCatching {
         exit.traceInputStream?.bufferedReader()?.useLines { lines ->
             lines.dropWhile { !it.startsWith("\"main\"") }.take(ANR_LINES).joinToString("\n")
@@ -104,17 +117,6 @@ object GearslipLog {
 
     private const val ANR_LINES = 25
     private const val EXIT_MARK = "Android ended this run:"
-
-    /** Exit reasons worth a line; leaving, updating and Java crashes (already logged) aren't. */
-    private val EXIT_REASONS = mapOf(
-        android.app.ApplicationExitInfo.REASON_CRASH_NATIVE to "a native crash",
-        android.app.ApplicationExitInfo.REASON_ANR to "the app stopped responding (ANR)",
-        android.app.ApplicationExitInfo.REASON_LOW_MEMORY to "the phone ran low on memory",
-        android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE to "it used too much of the phone's resources",
-        android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE to "it failed to start",
-        android.app.ApplicationExitInfo.REASON_SIGNALED to "the system killed it",
-        android.app.ApplicationExitInfo.REASON_DEPENDENCY_DIED to "something it depends on died",
-    )
 
     private fun logFiles(dir: File): List<File> =
         dir.listFiles { f -> f.isFile && f.name.startsWith("gearslip-") && f.name.endsWith(".log") }
@@ -145,7 +147,7 @@ object GearslipLog {
     fun shareableFile(context: Context, past: File): android.net.Uri {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val out = File(dir, "gearslip-log-${past.name.removePrefix("gearslip-").removeSuffix(".log")}.txt")
+        val out = File(dir, "Apollo-AA-log-${past.name.removePrefix("gearslip-").removeSuffix(".log")}.txt")
         past.copyTo(out, overwrite = true)
         return androidx.core.content.FileProvider.getUriForFile(
             context, "${context.packageName}.logshare", out,
@@ -174,7 +176,7 @@ object GearslipLog {
     fun shareableFile(context: Context): android.net.Uri {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val out = File(dir, "gearslip-log.txt")
+        val out = File(dir, "Apollo-AA-log.txt")
         out.writeText(SessionReport.render() + "\n\n" + fullText())
         return androidx.core.content.FileProvider.getUriForFile(
             context, "${context.packageName}.logshare", out,

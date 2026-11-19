@@ -54,6 +54,11 @@ val gitVersion: GitVersion = run {
     )
 }
 
+val buildVersionCode = project.findProperty("gearslipVersionCode")?.toString()?.let {
+    it.toIntOrNull() ?: error("gearslipVersionCode must be a positive integer.")
+} ?: gitVersion.code
+require(buildVersionCode > 0) { "gearslipVersionCode must be a positive integer." }
+
 // Keeps build output out of the module folder: <root>/build/gearslip/... instead of
 // <root>/gearslip/build/..., so everything this project produces lands under one
 // root-level build/ directory. Set before android {}, which works out the path to R8's default
@@ -65,13 +70,13 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.seb3thehacker.gearslip"
-        minSdk = 31
+        applicationId = "com.apollo.app_aa"
+        minSdk = 29
         targetSdk = 37
-        versionCode = gitVersion.code
-        // -PgearslipVersionName=0.1.99-test makes a build that thinks it's older, to try the updater.
+        versionCode = buildVersionCode
+        // Version overrides also let source builds make a numbered release without a Git tag.
         versionName = project.findProperty("gearslipVersionName")?.toString() ?: gitVersion.name
-        manifestPlaceholders["appLabel"] = "Gearslip"
+        manifestPlaceholders["appLabel"] = "Apollo AA"
         // Where opted-in phones send their daily usage note: the stats-worker/ Worker's address,
         // set as gearslipStatsUrl in gradle.properties. Left empty, nothing is ever sent.
         buildConfigField("String", "STATS_URL", "\"${project.findProperty("gearslipStatsUrl") ?: ""}\"")
@@ -97,13 +102,10 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        // Its own package, so a debug build installs beside the release one instead of over it.
-        // Signed with the release key when it's here: both builds declare the car template
-        // permission, and Android refuses a second app declaring it under a different key.
+        // Keep debug and release on the same package so the adb commands shown in Help target it.
+        // Signed with the release key when it's here: both builds declare the car template permission.
         debug {
-            applicationIdSuffix = ".dev"
             signingConfigs.findByName("release")?.let { signingConfig = it }
-            manifestPlaceholders["appLabel"] = "Gearslip Debug"
             // English (XA) and Arabic (XB) under the phone's languages: stretched, accented and
             // right-to-left text, which shows what's still hardcoded and what doesn't fit.
             isPseudoLocalesEnabled = true
@@ -163,7 +165,7 @@ android {
 
 }
 
-// Copies the produced APK to the root build/ folder (<root>/build/Gearslip-debug.apk) after the
+// Copies the produced APK to the root build/ folder (<root>/build/Apollo_Android_Auto-debug.apk) after the
 // fact rather than fighting AGP's variant-output API across versions - simpler and doesn't break
 // when that API moves again. A copy, not a move: AGP packages incrementally into the APK it left
 // last time, and with that file gone a build came out holding nothing but classes.dex.
@@ -174,7 +176,16 @@ tasks.register("renameApk") {
             .filter { it.extension == "apk" }
             .toList()
             .forEach { apk ->
-                val renamed = File(rootBuildDir, "Gearslip-${apk.parentFile.name}.apk")
+                val fileName = if (apk.parentFile.name == "release") {
+                    if (keystoreProperties.getProperty("storeFile") != null) {
+                        "Apollo_Android_Auto.apk"
+                    } else {
+                        "Apollo_Android_Auto-unsigned.apk"
+                    }
+                } else {
+                    "Apollo_Android_Auto-${apk.parentFile.name}.apk"
+                }
+                val renamed = File(rootBuildDir, fileName)
                 apk.copyTo(renamed, overwrite = true)
             }
     }
@@ -182,6 +193,7 @@ tasks.register("renameApk") {
 tasks.matching { it.name.startsWith("assemble") }.configureEach { finalizedBy("renameApk") }
 
 dependencies {
+    implementation(libs.androidx.core.ktx)
     // Only for the XML window theme (Theme.Material3.DynamicColors); every screen is Compose.
     implementation(libs.google.material)
     implementation(platform(libs.androidx.compose.bom))

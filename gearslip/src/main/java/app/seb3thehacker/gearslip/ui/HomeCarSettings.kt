@@ -118,7 +118,12 @@ private fun CustomDensityDialog(current: Int, onDismiss: () -> Unit, onSave: (In
     )
 }
 @Composable
-private fun themeChoices() = listOf(AppTheme.PHONE to stringResource(R.string.choice_theme_phone), AppTheme.LIGHT to stringResource(R.string.choice_theme_light), AppTheme.DARK to stringResource(R.string.choice_theme_dark))
+private fun themeChoices() = listOf(
+    AppTheme.PHONE to stringResource(R.string.choice_theme_phone),
+    AppTheme.LIGHT to stringResource(R.string.choice_theme_light),
+    AppTheme.DARK to stringResource(R.string.choice_theme_dark),
+    AppTheme.APOLLO_PURPLE to stringResource(R.string.choice_theme_apollo_purple),
+)
 @Composable
 private fun darkChoices() = listOf(
     DarkStyle.BLACK to stringResource(R.string.choice_dark_black),
@@ -314,7 +319,7 @@ private fun GroupRows(group: CarGroup) {
             SettingsDivider()
             Choice(stringResource(R.string.car_app_theme), themeChoices(), theme, CarSettings::setAppTheme)
             SettingsDivider()
-            if (theme != AppTheme.LIGHT) {
+            if (theme != AppTheme.LIGHT && theme != AppTheme.APOLLO_PURPLE) {
                 Choice(stringResource(R.string.car_dark_mode), darkChoices(), darkStyle, CarSettings::setDarkStyle)
                 SettingsDivider()
             }

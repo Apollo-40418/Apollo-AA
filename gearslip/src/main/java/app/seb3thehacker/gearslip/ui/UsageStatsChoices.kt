@@ -146,7 +146,7 @@ internal fun ColumnScope.UsageStatsRows() {
     SettingsDivider()
     SettingsRow(
         stringResource(R.string.privacy_policy),
-        Modifier.clickable { GearslipLinks.open(context, GearslipLinks.PRIVACY) },
+        Modifier.clickable { ApolloLinks.open(context, ApolloLinks.PRIVACY) },
         subtitle = stringResource(R.string.privacy_policy_sub),
         icon = Icons.Filled.Lock,
     )
