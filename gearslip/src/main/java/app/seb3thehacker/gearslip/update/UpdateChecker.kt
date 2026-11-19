@@ -95,9 +95,9 @@ object UpdateChecker {
     private const val CHANNEL = "updates"
     private const val NOTIFICATION_ID = 4100
     private const val DAY_MS = 24 * 60 * 60 * 1000L
-    private const val LATEST = "https://api.github.com/repos/Apollo-40418/Gearslip/releases/latest"
+    private const val LATEST = "https://api.github.com/repos/Apollo-40418/Apollo-AA/releases/latest"
     /** Newest first, pre-releases included. Ten covers any run of betas between two releases. */
-    private const val ALL = "https://api.github.com/repos/Apollo-40418/Gearslip/releases?per_page=10"
+    private const val ALL = "https://api.github.com/repos/Apollo-40418/Apollo-AA/releases?per_page=10"
 
     /** Set when the driver tapped Install but first had to allow installs from Gearslip. */
     @Volatile private var installWhenAllowed = false

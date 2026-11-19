@@ -4,7 +4,7 @@
 
 An Android Auto alternative built for everyone.
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Apollo-40418/Gearslip)
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Apollo-40418/Apollo-AA)
 
 ![Vela Maps navigating on the car screen, with the music player beside the map](docs/screenshots/navigation.png)
 
@@ -88,7 +88,7 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 
 ## Install
 
-1. Install Apollo AA from [the releases page](https://github.com/Apollo-40418/Gearslip/releases)
+1. Install Apollo AA from [the releases page](https://github.com/Apollo-40418/Apollo-AA/releases)
    or through Obtainium.
 2. Open it. Setup asks where your Android Auto certificate comes from, then for one
    permission at a time, each with a plain reason. A help screen in the car answers the rest.
