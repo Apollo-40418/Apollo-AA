@@ -1,6 +1,6 @@
-<img src="docs/icon/gearslip-icon.png" alt="Gearslip icon" width="96" height="96">
+<img src="Apollo_AA%20ICONS/Emblema%20Neon%20Apolo%20AA.png" alt="Emblema Neon Apolo AA" width="180">
 
-# Gearslip
+# Apollo AA
 
 An Android Auto alternative built for everyone.
 
@@ -14,8 +14,8 @@ Gearslip speaks the Android Auto protocol straight to your car, over USB or wire
 Google software in the path. Map, music, and messaging apps draw their car screens through
 Gearslip, and it adds a player, calls, voice, and a web browser of its own.
 
-Gearslip requires Android 10 (API 29) or newer. Wireless auto-connect requires Android 12 or
-newer; on Android 10 and 11, start a wireless connection from Gearslip.
+This fork has been modified to support Android 10 (API 29) and newer. Wireless auto-connect
+requires Android 12 or newer; on Android 10 and 11, start a wireless connection from Apollo AA.
 
 > [!WARNING]
 > Gearslip is **alpha software**. It can drop the connection, freeze the car screen, or fail
