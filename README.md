@@ -10,7 +10,7 @@ An Android Auto alternative built for everyone.
 
 [![forthebadge](https://forthebadge.com/badges/compatibility-club-penguin.svg)](https://forthebadge.com)
 
-Gearslip speaks the Android Auto protocol straight to your car, over USB or wireless, with no
+Apollo AA speaks the Android Auto protocol straight to your car, over USB or wireless, with no
 Google software in the path. Map, music, and messaging apps draw their car screens through
 Gearslip, and it adds a player, calls, voice, and a web browser of its own.
 
@@ -102,19 +102,19 @@ From then on, Gearslip connects whenever the car's Bluetooth does.
 > On GrapheneOS, make sure **USB-C port control** isn't set to **Charging-only**. That
 > setting blocks USB data, so the car never sees the phone, even with a data cable.
 
-Gearslip updates itself from this repository. Once a day it checks the latest release,
+Apollo AA updates itself from this repository. Once a day it checks the latest release,
 downloads the APK, checks it against GitHub's SHA-256, and installs it through Android's
 own installer. Turn off automatic checks in Settings.
 
 ### Verify your download
 
-Check that your copy of Gearslip is genuine with
+Check that your copy of Apollo AA is genuine with
 [AppVerifier](https://github.com/soupslurpr/AppVerifier): share this block to it, or compare it
 with the output of `apksigner verify --print-certs`.
 
 ```
 com.apollo.app_aa
-4C:C5:6E:BD:D1:3A:54:D2:60:EC:A9:B7:E2:B2:AE:6B:30:E2:F2:25:BF:DA:8F:50:8F:07:09:ED:F0:84:94:8B
+CB:C4:DD:76:2B:E6:8E:67:13:E0:AD:CE:2B:15:A6:EF:69:E0:68:87:E9:8E:64:F9:C8:F0:2D:DF:A1:86:98:80
 ```
 
 ## Good to know

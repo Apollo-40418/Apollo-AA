@@ -24,14 +24,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Write signing key and properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > gearslip-release.jks
-          cat > keystore.properties <<EOF
-          storeFile=gearslip-release.jks
-          storePassword=${{ secrets.KEYSTORE_STORE_PASSWORD }}
-          keyAlias=${{ secrets.KEYSTORE_KEY_ALIAS }}
-          keyPassword=${{ secrets.KEYSTORE_KEY_PASSWORD }}
-          EOF
+          set -euo pipefail
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > gearslip-release.jks
+          chmod 600 gearslip-release.jks
+          {
+            printf 'storeFile=gearslip-release.jks\n'
+            printf 'storePassword=%s\n' "$KEYSTORE_STORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEYSTORE_KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEYSTORE_KEY_PASSWORD"
+          } > keystore.properties
+          chmod 600 keystore.properties
 
       - name: Build release APK
         run: ./gradlew :gearslip:assembleRelease
@@ -39,18 +47,20 @@ jobs:
       - name: Locate APK
         id: apk
         run: |
-          # The build moves its APKs to <root>/build/Gearslip-<variant>.apk (see renameApk).
-          apk=build/Gearslip-release.apk
-          test -f "$apk" || { echo "no APK at $apk"; ls -R build | head -50; exit 1; }
+          set -euo pipefail
+          source_apk=build/Apollo_Android_Auto.apk
+          test -f "$source_apk" || { echo "no APK at $source_apk"; ls -R build | head -50; exit 1; }
+          version="${GITHUB_REF_NAME#v}"
+          apk="build/Apollo-AA-${version}.apk"
+          cp "$source_apk" "$apk"
           echo "path=$apk" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          name: Apollo AA ${{ github.ref_name }}
           files: ${{ steps.apk.outputs.path }}
           # The hand-written notes go first; GitHub adds the full changelog link under them.
           body_path: .github/release-notes.md
           generate_release_notes: true
-          # Every release starts as a pre-release: only phones on the Alpha update channel get it.
-          # Once it's tested, untick pre-release on GitHub and everyone gets it.
-          prerelease: true
+          prerelease: false

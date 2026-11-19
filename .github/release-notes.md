@@ -1,11 +1,17 @@
 # Apollo AA 1.0.0
 
-This release packages the Apollo AA fork as `com.apollo.app_aa`.
+The first production release of Apollo AA, package `com.apollo.app_aa`, modified to support
+Android 10 (API 29) and newer.
 
-## Highlights
+## Included
 
-- Adds an in-app car compatibility list in Help.
-- Shows whether the ADB permissions are granted in Help.
-- Includes updated Apollo AA screenshots in the project documentation.
+- Local car compatibility list in Help.
+- ADB permission status in Help.
+- Apollo AA branding and updated screenshots.
 
-The GitHub Actions release workflow builds and attaches the signed release APK.
+Download `Apollo-AA-1.0.0.apk` below. This release is signed for production; future updates
+must use the same signing key.
+
+> **If you installed an earlier debug build:** Android treats its debug signing key as a
+> different app identity. Uninstall that build before installing this release; uninstalling
+> removes the app's local data and settings.
