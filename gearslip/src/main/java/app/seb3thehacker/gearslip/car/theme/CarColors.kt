@@ -10,6 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import app.seb3thehacker.gearslip.car.CarAccent
 import app.seb3thehacker.gearslip.car.AppTheme
 
 fun AppTheme.isDark(systemDark: Boolean): Boolean = when (this) {
@@ -18,24 +19,102 @@ fun AppTheme.isDark(systemDark: Boolean): Boolean = when (this) {
     AppTheme.DARK, AppTheme.APOLLO_PURPLE -> true
 }
 
+internal fun AppTheme.phoneUiTheme(): AppTheme = AppTheme.PHONE
+
+private data class AccentPalette(
+    val primary: Color,
+    val onPrimary: Color,
+    val container: Color,
+    val onContainer: Color,
+)
+
+private fun accentPalette(accent: CarAccent, dark: Boolean): AccentPalette? = when (accent) {
+    CarAccent.SYSTEM -> null
+    CarAccent.BLUE -> if (dark) {
+        AccentPalette(Color(0xFFADC6FF), Color(0xFF002E69), Color(0xFF004494), Color(0xFFD8E2FF))
+    } else {
+        AccentPalette(Color(0xFF005AC1), Color.White, Color(0xFFD8E2FF), Color(0xFF001A43))
+    }
+    CarAccent.RED -> if (dark) {
+        AccentPalette(Color(0xFFF2B8B5), Color(0xFF601410), Color(0xFF8C1D18), Color(0xFFF9DEDC))
+    } else {
+        AccentPalette(Color(0xFFB3261E), Color.White, Color(0xFFF9DEDC), Color(0xFF410E0B))
+    }
+    CarAccent.GREEN -> if (dark) {
+        AccentPalette(Color(0xFF82D99D), Color(0xFF00391D), Color(0xFF00522B), Color(0xFFA5F2C2))
+    } else {
+        AccentPalette(Color(0xFF006D3B), Color.White, Color(0xFFA5F2C2), Color(0xFF00210F))
+    }
+    CarAccent.YELLOW -> if (dark) {
+        AccentPalette(Color(0xFFE9C349), Color(0xFF3D2F00), Color(0xFF5A4600), Color(0xFFFFE08A))
+    } else {
+        AccentPalette(Color(0xFF715C00), Color.White, Color(0xFFFFE08A), Color(0xFF241A00))
+    }
+    CarAccent.PURPLE -> if (dark) {
+        AccentPalette(Color(0xFFD0BCFF), Color(0xFF381E72), Color(0xFF4F378B), Color(0xFFEADDFF))
+    } else {
+        AccentPalette(Color(0xFF6750A4), Color.White, Color(0xFFEADDFF), Color(0xFF21005D))
+    }
+    CarAccent.ORANGE -> if (dark) {
+        AccentPalette(Color(0xFFFFB68C), Color(0xFF522300), Color(0xFF783800), Color(0xFFFFDBC7))
+    } else {
+        AccentPalette(Color(0xFF9A4600), Color.White, Color(0xFFFFDBC7), Color(0xFF321300))
+    }
+    CarAccent.PINK -> if (dark) {
+        AccentPalette(Color(0xFFFFB1D0), Color(0xFF5A0036), Color(0xFF80004F), Color(0xFFFFD8E8))
+    } else {
+        AccentPalette(Color(0xFFA00063), Color.White, Color(0xFFFFD8E8), Color(0xFF3A0022))
+    }
+    CarAccent.TEAL -> if (dark) {
+        AccentPalette(Color(0xFF80D5C9), Color(0xFF003731), Color(0xFF005047), Color(0xFF9CF2E2))
+    } else {
+        AccentPalette(Color(0xFF006A60), Color.White, Color(0xFF9CF2E2), Color(0xFF00201B))
+    }
+}
+
+internal fun ColorScheme.withCarAccent(accent: CarAccent, dark: Boolean): ColorScheme {
+    val palette = accentPalette(accent, dark) ?: return this
+    return copy(
+        primary = palette.primary,
+        onPrimary = palette.onPrimary,
+        primaryContainer = palette.container,
+        onPrimaryContainer = palette.onContainer,
+        inversePrimary = palette.primary,
+        secondary = palette.primary,
+        onSecondary = palette.onPrimary,
+        secondaryContainer = palette.container,
+        onSecondaryContainer = palette.onContainer,
+        tertiary = palette.primary,
+        onTertiary = palette.onPrimary,
+        tertiaryContainer = palette.container,
+        onTertiaryContainer = palette.onContainer,
+        surfaceTint = palette.primary,
+    )
+}
+
 fun gearslipColorScheme(
     context: Context,
     theme: AppTheme,
     systemDark: Boolean,
     style: DarkStyle,
+    accent: CarAccent = CarAccent.SYSTEM,
 ): ColorScheme {
     if (theme == AppTheme.APOLLO_PURPLE) return apolloPurpleColorScheme()
 
     val dark = theme.isDark(systemDark)
-    val scheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val scheme = if (accent != CarAccent.SYSTEM && theme == AppTheme.LIGHT) {
+        lightColorScheme()
+    } else if (accent != CarAccent.SYSTEM && theme == AppTheme.DARK) {
+        darkColorScheme()
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
         if (dark) darkColorScheme() else lightColorScheme()
     }
-    return scheme.withTintedSurfaces(dark, style)
+    return scheme.withCarAccent(accent, dark).withTintedSurfaces(dark, style)
 }
 
-private fun apolloPurpleColorScheme() = darkColorScheme(
+internal fun apolloPurpleColorScheme() = darkColorScheme(
     primary = Color(0xFFD0A1FF),
     onPrimary = Color(0xFF2A004C),
     primaryContainer = Color(0xFF592485),
@@ -49,7 +128,7 @@ private fun apolloPurpleColorScheme() = darkColorScheme(
     onTertiary = Color(0xFF4B173F),
     tertiaryContainer = Color(0xFF67305B),
     onTertiaryContainer = Color(0xFFFFD8F4),
-    background = Color(0xFF05030A),
+    background = Color.Black,
     onBackground = Color(0xFFF5EFFA),
     surface = Color(0xFF09060F),
     onSurface = Color(0xFFF5EFFA),

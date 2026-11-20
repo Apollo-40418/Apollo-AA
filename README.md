@@ -35,7 +35,10 @@ without Google's Android Auto app.
 - Optional ADB commands show whether each permission is **ADB GRANTED** or **ADB NOT GRANTED**.
 - The app drawer keeps Tactile, Flat, and Keycap styles, and adds Transparent Border, Round, and Square.
 - Choose named colors for the app drawer shapes, including the original button styles.
-- Set a photo or animated GIF as the app drawer background. These customizations do not change the main menu.
+- Set a photo or animated GIF as the app drawer background; GIFs animate automatically
+  with adjustable playback speed.
+- Choose ready-made white/color, black/color, or Apollo black-and-purple presets from one **Themes** menu. These presets only change the multimedia preview, not the phone app.
+- These customizations do not change the main menu.
 
 ### Android Auto essentials
 

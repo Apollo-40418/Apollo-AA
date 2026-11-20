@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.R
-import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
@@ -53,7 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.seb3thehacker.gearslip.car.AppTheme
 import app.seb3thehacker.gearslip.car.CarApps
 import app.seb3thehacker.gearslip.car.LauncherMode
 import app.seb3thehacker.gearslip.car.CarSettings
@@ -65,6 +63,7 @@ import app.seb3thehacker.gearslip.car.carDrawerColorChoices
 import app.seb3thehacker.gearslip.car.carButtonChoices
 import app.seb3thehacker.gearslip.car.selectedDrawerColorChoice
 import app.seb3thehacker.gearslip.car.selectedButtonChoice
+import app.seb3thehacker.gearslip.car.carThemeChoices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -121,20 +120,6 @@ private fun CustomDensityDialog(current: Int, onDismiss: () -> Unit, onSave: (In
     )
 }
 @Composable
-private fun themeChoices() = listOf(
-    AppTheme.PHONE to stringResource(R.string.choice_theme_phone),
-    AppTheme.LIGHT to stringResource(R.string.choice_theme_light),
-    AppTheme.DARK to stringResource(R.string.choice_theme_dark),
-    AppTheme.APOLLO_PURPLE to stringResource(R.string.choice_theme_apollo_purple),
-)
-@Composable
-private fun darkChoices() = listOf(
-    DarkStyle.BLACK to stringResource(R.string.choice_dark_black),
-    DarkStyle.BLACK_COLOUR to stringResource(R.string.choice_dark_black_colour),
-    DarkStyle.DEEP_COLOUR to stringResource(R.string.choice_dark_deep_colour),
-    DarkStyle.GREY to stringResource(R.string.choice_dark_grey),
-)
-@Composable
 private fun nightChoices() = listOf(NightMode.AUTO to stringResource(R.string.choice_auto), NightMode.DAY to stringResource(R.string.choice_night_day), NightMode.NIGHT to stringResource(R.string.choice_night_night))
 @Composable
 private fun unitChoices() = listOf(Units.AUTO to stringResource(R.string.choice_auto), Units.IMPERIAL to stringResource(R.string.choice_units_imperial), Units.METRIC to stringResource(R.string.choice_units_metric))
@@ -166,14 +151,14 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
     val bluetoothWarning by CarSettings.bluetoothWarning.collectAsState()
     val locationWarning by CarSettings.locationWarning.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
-    val theme by CarSettings.appTheme.collectAsState()
+    val themePreset by CarSettings.themePreset.collectAsState()
     val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val browserEngine by app.seb3thehacker.gearslip.browser.BrowserSettings.searchEngine.collectAsState()
     val browserAdBlock by app.seb3thehacker.gearslip.browser.BrowserSettings.adBlock.collectAsState()
 
     val opens = openChoices()
     val sizes = sizeChoices()
-    val themes = themeChoices()
+    val themes = carThemeChoices()
     val navBars = navBarChoices()
     val context = androidx.compose.ui.platform.LocalContext.current
     fun str(id: Int) = context.getString(id)
@@ -181,7 +166,7 @@ internal fun HomeCarSettings(onOpen: (CarGroup) -> Unit, modifier: Modifier = Mo
     val places = androidx.compose.runtime.remember { app.seb3thehacker.gearslip.car.SavedPlaces.all(context) }
     fun summary(group: CarGroup) = when (group) {
         CarGroup.APPS -> listOf(str(R.string.car_apps_sub))
-        CarGroup.SCREEN -> listOf(opens.label(open), sizes.label(scale), themes.label(theme))
+        CarGroup.SCREEN -> listOf(opens.label(open), sizes.label(scale), themes.label(themePreset))
         CarGroup.NAV_BAR -> listOf(navBars.label(navBar), str(if (playerLeft) R.string.summary_player_left else R.string.summary_player_right))
         CarGroup.SOUND -> listOf(
             str(if (pipeAudio) R.string.summary_usb_audio else R.string.summary_bluetooth_audio),
@@ -293,11 +278,10 @@ private fun GroupRows(group: CarGroup) {
     val playerTitle by CarSettings.playerTitle.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
     val navMic by CarSettings.navMic.collectAsState()
-    val theme by CarSettings.appTheme.collectAsState()
+    val themePreset by CarSettings.themePreset.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val drawerIconStyle by CarSettings.drawerIconStyle.collectAsState()
     val drawerTileColor by CarSettings.drawerTileColor.collectAsState()
-    val darkStyle by CarSettings.darkStyle.collectAsState()
     val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
@@ -324,12 +308,8 @@ private fun GroupRows(group: CarGroup) {
                 }
             }
             SettingsDivider()
-            Choice(stringResource(R.string.car_app_theme), themeChoices(), theme, CarSettings::setAppTheme)
+            Choice(stringResource(R.string.car_themes), carThemeChoices(), themePreset, CarSettings::setThemePreset)
             SettingsDivider()
-            if (theme != AppTheme.LIGHT && theme != AppTheme.APOLLO_PURPLE) {
-                Choice(stringResource(R.string.car_dark_mode), darkChoices(), darkStyle, CarSettings::setDarkStyle)
-                SettingsDivider()
-            }
             Choice(
                 stringResource(R.string.car_buttons),
                 carButtonChoices(),
@@ -345,6 +325,7 @@ private fun GroupRows(group: CarGroup) {
             )
             SettingsDivider()
             DrawerBackgroundSetting(drawerBackgroundPicker.choosePhoto)
+            DrawerGifSpeedSetting()
             SettingsDivider()
             Choice(stringResource(R.string.car_map_day_night), nightChoices(), night, CarSettings::setNightMode)
             SettingsDivider()

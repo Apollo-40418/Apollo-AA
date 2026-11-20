@@ -19,6 +19,39 @@ enum class Units { AUTO, IMPERIAL, METRIC }
 /** The car UI's own colours. Separate from [NightMode], which is about the light outside (the map). */
 enum class AppTheme { PHONE, LIGHT, DARK, APOLLO_PURPLE }
 
+/** The accent paired with a car theme preset; [SYSTEM] keeps the phone's current palette. */
+enum class CarAccent { SYSTEM, BLUE, RED, GREEN, YELLOW, PURPLE, ORANGE, PINK, TEAL }
+
+enum class CarThemePreset(val appTheme: AppTheme, val accent: CarAccent) {
+    FOLLOW_PHONE(AppTheme.PHONE, CarAccent.SYSTEM),
+    WHITE_BLUE(AppTheme.LIGHT, CarAccent.BLUE),
+    WHITE_GREEN(AppTheme.LIGHT, CarAccent.GREEN),
+    WHITE_RED(AppTheme.LIGHT, CarAccent.RED),
+    WHITE_YELLOW(AppTheme.LIGHT, CarAccent.YELLOW),
+    WHITE_PURPLE(AppTheme.LIGHT, CarAccent.PURPLE),
+    WHITE_ORANGE(AppTheme.LIGHT, CarAccent.ORANGE),
+    WHITE_PINK(AppTheme.LIGHT, CarAccent.PINK),
+    WHITE_TEAL(AppTheme.LIGHT, CarAccent.TEAL),
+    BLACK_BLUE(AppTheme.DARK, CarAccent.BLUE),
+    BLACK_GREEN(AppTheme.DARK, CarAccent.GREEN),
+    BLACK_RED(AppTheme.DARK, CarAccent.RED),
+    BLACK_YELLOW(AppTheme.DARK, CarAccent.YELLOW),
+    BLACK_PURPLE(AppTheme.DARK, CarAccent.PURPLE),
+    BLACK_ORANGE(AppTheme.DARK, CarAccent.ORANGE),
+    BLACK_PINK(AppTheme.DARK, CarAccent.PINK),
+    BLACK_TEAL(AppTheme.DARK, CarAccent.TEAL),
+    APOLLO_BLACK_PURPLE(AppTheme.APOLLO_PURPLE, CarAccent.SYSTEM);
+
+    companion object {
+        fun from(theme: AppTheme, accent: CarAccent): CarThemePreset = when (theme) {
+            AppTheme.PHONE -> FOLLOW_PHONE
+            AppTheme.LIGHT -> entries.firstOrNull { it.appTheme == theme && it.accent == accent } ?: WHITE_BLUE
+            AppTheme.DARK -> entries.firstOrNull { it.appTheme == theme && it.accent == accent } ?: BLACK_BLUE
+            AppTheme.APOLLO_PURPLE -> APOLLO_BLACK_PURPLE
+        }
+    }
+}
+
 /** A screen's width and height in pixels, as someone typed it: "1280x480". */
 data class ScreenSize(val width: Int, val height: Int) {
     override fun toString() = "${width}x$height"
@@ -35,6 +68,10 @@ data class ScreenSize(val width: Int, val height: Int) {
 }
 
 internal data class DrawerBackground(val uri: String, val fileName: String)
+
+internal const val MIN_DRAWER_GIF_SPEED = 0.5f
+internal const val MAX_DRAWER_GIF_SPEED = 2f
+internal const val DEFAULT_DRAWER_GIF_SPEED = 1f
 
 /**
  * How a head unit puts our frame on a screen of another shape. [CROP] cuts the edges off, as
@@ -73,11 +110,14 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_NAV_MIC = "car_nav_mic"
     private const val KEY_DEFAULT_HIDDEN = "car_default_hidden"
     private const val KEY_THEME = "car_app_theme"
+    private const val KEY_THEME_ACCENT = "car_theme_accent"
+    private const val KEY_THEME_PRESET = "car_theme_preset"
     private const val KEY_UI_THEME = "car_ui_theme"
     private const val KEY_DRAWER_ICON_STYLE = "car_drawer_icon_style"
     private const val KEY_DRAWER_TILE_COLOR = "car_drawer_tile_color"
     private const val KEY_DRAWER_BACKGROUND_URI = "car_drawer_background_uri"
     private const val KEY_DRAWER_BACKGROUND_NAME = "car_drawer_background_name"
+    private const val KEY_DRAWER_GIF_SPEED = "car_drawer_gif_speed"
     private const val KEY_DARK_STYLE = "car_dark_style"
     private const val KEY_PINNED = "car_pinned_apps"
     private const val KEY_APP_ORDER = "car_app_order"
@@ -123,6 +163,10 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
     private val navMicFlow = MutableStateFlow(true)
     private val themeFlow = MutableStateFlow(AppTheme.PHONE)
     val appTheme: StateFlow<AppTheme> = themeFlow
+    private val appAccentFlow = MutableStateFlow(CarAccent.SYSTEM)
+    internal val appAccent: StateFlow<CarAccent> = appAccentFlow
+    private val themePresetFlow = MutableStateFlow(CarThemePreset.FOLLOW_PHONE)
+    internal val themePreset: StateFlow<CarThemePreset> = themePresetFlow
     private val darkStyleFlow = MutableStateFlow(DarkStyle.BLACK)
 
     /** How dark the car's dark mode goes; black until the driver picks another. */
@@ -143,6 +187,8 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
 
     /** User-selected image behind the app drawer, or null for the original background. */
     internal val drawerBackground: StateFlow<DrawerBackground?> = drawerBackgroundFlow
+    private val drawerGifSpeedFlow = MutableStateFlow(DEFAULT_DRAWER_GIF_SPEED)
+    internal val drawerGifSpeed: StateFlow<Float> = drawerGifSpeedFlow
     private val pinnedFlow = MutableStateFlow<Set<String>>(emptySet())
     private val appOrderFlow = MutableStateFlow<List<String>>(emptyList())
     private val hiddenAppsFlow = MutableStateFlow<Set<String>>(emptySet())
@@ -401,12 +447,32 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
         openFlow.value = AppSettings.getString(app, KEY_OPEN, HOME)
         lastNavFlow.value = AppSettings.getString(app, KEY_LAST_NAV, "").ifEmpty { null }
         lastMediaFlow.value = AppSettings.getString(app, KEY_LAST_MEDIA, "").ifEmpty { null }
-        themeFlow.value = runCatching {
-            AppTheme.valueOf(AppSettings.getString(app, KEY_THEME, AppTheme.PHONE.name))
-        }.getOrDefault(AppTheme.PHONE)
+        val savedThemePreset = runCatching {
+            CarThemePreset.valueOf(AppSettings.getString(app, KEY_THEME_PRESET, ""))
+        }.getOrNull()
+        if (savedThemePreset != null) {
+            themePresetFlow.value = savedThemePreset
+            themeFlow.value = savedThemePreset.appTheme
+            appAccentFlow.value = savedThemePreset.accent
+        } else {
+            themeFlow.value = runCatching {
+                AppTheme.valueOf(AppSettings.getString(app, KEY_THEME, AppTheme.PHONE.name))
+            }.getOrDefault(AppTheme.PHONE)
+            appAccentFlow.value = runCatching {
+                CarAccent.valueOf(AppSettings.getString(app, KEY_THEME_ACCENT, CarAccent.SYSTEM.name))
+            }.getOrDefault(CarAccent.SYSTEM)
+            val preset = CarThemePreset.from(themeFlow.value, appAccentFlow.value)
+            themePresetFlow.value = preset
+            themeFlow.value = preset.appTheme
+            appAccentFlow.value = preset.accent
+        }
         darkStyleFlow.value = runCatching {
             DarkStyle.valueOf(AppSettings.getString(app, KEY_DARK_STYLE, DarkStyle.BLACK.name))
         }.getOrDefault(DarkStyle.BLACK)
+        if (themePresetFlow.value.appTheme == AppTheme.DARK && darkStyleFlow.value != DarkStyle.BLACK) {
+            darkStyleFlow.value = DarkStyle.BLACK
+            AppSettings.putString(app, KEY_DARK_STYLE, DarkStyle.BLACK.name)
+        }
         uiThemeFlow.value = AppSettings.getString(app, KEY_UI_THEME, GsThemes.default.id)
         drawerIconStyleFlow.value = DrawerIconStyle.fromPreference(
             AppSettings.getString(app, KEY_DRAWER_ICON_STYLE, DrawerIconStyle.DEFAULT.name),
@@ -421,6 +487,13 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
         } else {
             null
         }
+        drawerGifSpeedFlow.value = AppSettings.getString(
+            app,
+            KEY_DRAWER_GIF_SPEED,
+            DEFAULT_DRAWER_GIF_SPEED.toString(),
+        ).toFloatOrNull()?.takeIf {
+            it.isFinite() && it in MIN_DRAWER_GIF_SPEED..MAX_DRAWER_GIF_SPEED
+        } ?: DEFAULT_DRAWER_GIF_SPEED
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
         playerLeftFlow.value = AppSettings.getString(app, KEY_PLAYER_LEFT, "false") == "true"
@@ -490,9 +563,14 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
         AppSettings.putString(app, KEY_LAST_MEDIA, component)
     }
 
-    fun setAppTheme(theme: AppTheme) {
-        themeFlow.value = theme
-        AppSettings.putString(app, KEY_THEME, theme.name)
+    internal fun setThemePreset(preset: CarThemePreset) {
+        themePresetFlow.value = preset
+        themeFlow.value = preset.appTheme
+        appAccentFlow.value = preset.accent
+        AppSettings.putString(app, KEY_THEME_PRESET, preset.name)
+        AppSettings.putString(app, KEY_THEME, preset.appTheme.name)
+        AppSettings.putString(app, KEY_THEME_ACCENT, preset.accent.name)
+        if (preset.appTheme == AppTheme.DARK) setDarkStyle(DarkStyle.BLACK)
     }
 
     fun setDarkStyle(style: DarkStyle) {
@@ -533,6 +611,13 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
         drawerBackgroundFlow.value = background
         AppSettings.putString(app, KEY_DRAWER_BACKGROUND_URI, background?.uri.orEmpty())
         AppSettings.putString(app, KEY_DRAWER_BACKGROUND_NAME, background?.fileName.orEmpty())
+    }
+
+    internal fun setDrawerGifSpeed(speed: Float) {
+        require(speed.isFinite()) { "GIF playback speed must be finite" }
+        val boundedSpeed = speed.coerceIn(MIN_DRAWER_GIF_SPEED, MAX_DRAWER_GIF_SPEED)
+        drawerGifSpeedFlow.value = boundedSpeed
+        AppSettings.putString(app, KEY_DRAWER_GIF_SPEED, boundedSpeed.toString())
     }
 
     fun setPlayerTitle(on: Boolean) {

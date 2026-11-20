@@ -6,10 +6,16 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,16 +25,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import java.text.DecimalFormat
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Box
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.CarSettings
 import app.seb3thehacker.gearslip.car.DrawerBackground
+import app.seb3thehacker.gearslip.car.MAX_DRAWER_GIF_SPEED
+import app.seb3thehacker.gearslip.car.MIN_DRAWER_GIF_SPEED
 
 @Composable
 internal fun rememberDrawerBackgroundPicker(): DrawerBackgroundPickerState {
@@ -141,6 +151,51 @@ internal fun DrawerBackgroundSetting(onChoosePhoto: () -> Unit) {
             }
         },
     )
+}
+
+@Composable
+internal fun DrawerGifSpeedSetting() {
+    val background by CarSettings.drawerBackground.collectAsState()
+    val speed by CarSettings.drawerGifSpeed.collectAsState()
+    val isGif = background?.fileName?.substringAfterLast('.', "")?.equals("gif", ignoreCase = true) == true
+    if (!isGif) {
+        return
+    }
+
+    val speedLabel = remember(speed) { DecimalFormat("0.##").format(speed) }
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.drawer_gif_speed),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(R.string.drawer_gif_speed_value, speedLabel),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Slider(
+            value = speed,
+            onValueChange = CarSettings::setDrawerGifSpeed,
+            valueRange = MIN_DRAWER_GIF_SPEED..MAX_DRAWER_GIF_SPEED,
+            steps = 5,
+        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(stringResource(R.string.drawer_gif_speed_slow), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.drawer_gif_speed_fast), style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }
 
 internal data class DrawerBackgroundPickerState(

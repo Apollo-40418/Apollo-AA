@@ -1,7 +1,11 @@
 package app.seb3thehacker.gearslip.car
 
 import android.graphics.ImageDecoder
-import android.graphics.drawable.AnimatedImageDrawable
+import android.graphics.Canvas
+import android.graphics.Movie
+import android.graphics.Paint
+import android.os.SystemClock
+import android.view.View
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.res.stringResource
@@ -41,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -66,7 +71,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.content.Context
 import android.net.Uri
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.Color
@@ -303,9 +307,11 @@ internal fun launchEntry(entry: Entry, navigator: CarNavigator, frame: CarEnviro
     entry.messaging?.let { navigator.messages(it.packageName, it.label) }
 }
 
+// Movie exposes a seekable timeline, unlike AnimatedImageDrawable, so the GIF can run at a chosen speed.
+@Suppress("DEPRECATION")
 private sealed interface DrawerBackgroundImage {
     data class Static(val bitmap: ImageBitmap) : DrawerBackgroundImage
-    data class Animated(val drawable: AnimatedImageDrawable) : DrawerBackgroundImage
+    data class Animated(val movie: Movie) : DrawerBackgroundImage
 }
 
 /** The app launcher: every app as an icon grid, grouped Phone, Maps, Music, Messaging, Web, Screen sharing, Settings. */
@@ -315,6 +321,7 @@ fun CarLauncher() {
     val navigator = LocalCarNavigator.current
     val frame by CarEnvironment.frame.collectAsState()
     val drawerBackground by CarSettings.drawerBackground.collectAsState()
+    val drawerGifSpeed by CarSettings.drawerGifSpeed.collectAsState()
     var backgroundLoadFailed by remember(drawerBackground?.uri) { mutableStateOf(false) }
     val backgroundImage by produceState<DrawerBackgroundImage?>(null, drawerBackground?.uri) {
         value = null
@@ -393,7 +400,7 @@ fun CarLauncher() {
                 contentScale = ContentScale.Crop,
                 alpha = 0.5f,
             )
-            is DrawerBackgroundImage.Animated -> AnimatedDrawerBackground(image.drawable)
+            is DrawerBackgroundImage.Animated -> AnimatedDrawerBackground(image.movie, drawerGifSpeed)
             null -> Unit
         }
         LazyVerticalGrid(
@@ -410,29 +417,68 @@ fun CarLauncher() {
 }
 
 @Composable
-private fun AnimatedDrawerBackground(drawable: AnimatedImageDrawable) {
-    AndroidView(
-        factory = { context ->
-            ImageView(context).apply {
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                imageAlpha = 128
-                drawable.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
-                setImageDrawable(drawable)
-                drawable.start()
-            }
-        },
-        modifier = Modifier.fillMaxSize(),
-        update = { imageView ->
-            if (imageView.drawable !== drawable) imageView.setImageDrawable(drawable)
-            if (!drawable.isRunning) drawable.start()
-        },
-        onRelease = { imageView ->
-            drawable.stop()
-            imageView.setImageDrawable(null)
-        },
-    )
+@Suppress("DEPRECATION")
+private fun AnimatedDrawerBackground(movie: Movie, speed: Float) {
+    key(movie) {
+        AndroidView(
+            factory = { context -> AnimatedGifView(context, movie, speed) },
+            modifier = Modifier.fillMaxSize(),
+            update = { it.updatePlaybackSpeed(speed) },
+        )
+    }
 }
 
+@Suppress("DEPRECATION")
+private class AnimatedGifView(
+    context: Context,
+    private val movie: Movie,
+    initialSpeed: Float,
+) : View(context) {
+    private var playbackSpeed = initialSpeed
+    private var animationStartTime = SystemClock.uptimeMillis()
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply { alpha = 128 }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val movieWidth = movie.width()
+        val movieHeight = movie.height()
+        if (movieWidth <= 0 || movieHeight <= 0 || width <= 0 || height <= 0) return
+
+        val duration = movie.duration().coerceAtLeast(1)
+        val elapsed = SystemClock.uptimeMillis() - animationStartTime
+        movie.setTime(gifPlaybackTime(elapsed, playbackSpeed, duration))
+
+        val scale = maxOf(width.toFloat() / movieWidth, height.toFloat() / movieHeight)
+        canvas.save()
+        canvas.translate(
+            (width - movieWidth * scale) / 2f,
+            (height - movieHeight * scale) / 2f,
+        )
+        canvas.scale(scale, scale)
+        movie.draw(canvas, 0f, 0f, paint)
+        canvas.restore()
+
+        if (isAttachedToWindow) postInvalidateOnAnimation()
+    }
+
+    fun updatePlaybackSpeed(speed: Float) {
+        if (speed == playbackSpeed) return
+        val now = SystemClock.uptimeMillis()
+        val duration = movie.duration().coerceAtLeast(1)
+        val currentMovieTime = gifPlaybackTime(now - animationStartTime, playbackSpeed, duration)
+        playbackSpeed = speed
+        animationStartTime = now - (currentMovieTime / speed).toLong()
+        invalidate()
+    }
+}
+
+internal fun gifPlaybackTime(elapsedMillis: Long, speed: Float, durationMillis: Int): Int {
+    require(speed.isFinite() && speed > 0f) { "GIF playback speed must be positive and finite" }
+    val duration = durationMillis.coerceAtLeast(1)
+    return ((elapsedMillis.coerceAtLeast(0).toDouble() * speed).toLong() % duration).toInt()
+}
+
+@Suppress("DEPRECATION")
 private suspend fun loadDrawerBackground(
     context: Context,
     uri: Uri,
@@ -443,37 +489,41 @@ private suspend fun loadDrawerBackground(
         val isGif = context.contentResolver.getType(uri).equals("image/gif", ignoreCase = true) ||
             fileName.substringAfterLast('.', "").equals("gif", ignoreCase = true)
         if (isGif) {
-            val drawable = ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
-                val largestDimension = maxOf(info.size.width, info.size.height)
-                val scale = minOf(1f, 2048f / largestDimension)
-                if (scale < 1f) {
-                    decoder.setTargetSize(
-                        (info.size.width * scale).toInt().coerceAtLeast(1),
-                        (info.size.height * scale).toInt().coerceAtLeast(1),
-                    )
-                }
+            val movie = context.contentResolver.openInputStream(uri)?.use { Movie.decodeStream(it) }
+                ?: throw IOException("Could not decode GIF background")
+            if (movie.width() <= 0 || movie.height() <= 0) {
+                throw IOException("GIF background has invalid dimensions")
             }
-            if (drawable is AnimatedImageDrawable) {
-                drawable.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
-                DrawerBackgroundImage.Animated(drawable)
+            if (movie.duration() > 0) {
+                DrawerBackgroundImage.Animated(movie)
             } else {
-                DrawerBackgroundImage.Static(drawable.toBitmap().asImageBitmap())
+                DrawerBackgroundImage.Static(
+                    ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                        setDrawerBackgroundDecodeSize(decoder, info.size.width, info.size.height)
+                    }.asImageBitmap(),
+                )
             }
         } else {
             DrawerBackgroundImage.Static(
                 ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-                    val largestDimension = maxOf(info.size.width, info.size.height)
-                    val scale = minOf(1f, 2048f / largestDimension)
-                    if (scale < 1f) {
-                        decoder.setTargetSize(
-                            (info.size.width * scale).toInt().coerceAtLeast(1),
-                            (info.size.height * scale).toInt().coerceAtLeast(1),
-                        )
-                    }
+                    setDrawerBackgroundDecodeSize(decoder, info.size.width, info.size.height)
                 }.asImageBitmap(),
             )
         }
     }
+
+private fun setDrawerBackgroundDecodeSize(decoder: ImageDecoder, width: Int, height: Int) {
+    val largestDimension = maxOf(width, height)
+    if (largestDimension <= 0) return
+
+    val scale = minOf(1f, 2048f / largestDimension)
+    if (scale < 1f) {
+        decoder.setTargetSize(
+            (width * scale).toInt().coerceAtLeast(1),
+            (height * scale).toInt().coerceAtLeast(1),
+        )
+    }
+}
 
 /** A red disc with a white X: marks a tile known not to work with Gearslip yet. */
 /**

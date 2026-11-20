@@ -3,13 +3,13 @@ package app.seb3thehacker.gearslip.car
 import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.R
 
-import app.seb3thehacker.gearslip.car.theme.DarkStyle
 import app.seb3thehacker.gearslip.car.theme.*
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -69,11 +70,10 @@ fun CarSettingsScreen() {
     val playerTitle by CarSettings.playerTitle.collectAsState()
     val playerLeft by CarSettings.playerLeft.collectAsState()
     val navMic by CarSettings.navMic.collectAsState()
-    val theme by CarSettings.appTheme.collectAsState()
+    val themePreset by CarSettings.themePreset.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
     val drawerIconStyle by CarSettings.drawerIconStyle.collectAsState()
     val drawerTileColor by CarSettings.drawerTileColor.collectAsState()
-    val darkStyle by CarSettings.darkStyle.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
@@ -82,7 +82,6 @@ fun CarSettingsScreen() {
     val display by CarEnvironment.display.collectAsState()
     val vehicle by CarEnvironment.vehicle.collectAsState()
     val context = LocalContext.current
-
     // A rail of the groups down the left, and the chosen group's settings beside it: five short
     // lists instead of one long scroll. The groups and their order match Settings on the phone.
     var chosen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
@@ -116,28 +115,11 @@ fun CarSettingsScreen() {
                         ) { CarSettings.setScale(it) }
                     }
                     item {
-                        ChoiceRow(
-                            stringResource(R.string.car_app_theme),
-                            listOf(
-                                AppTheme.PHONE to stringResource(R.string.choice_theme_phone),
-                                AppTheme.LIGHT to stringResource(R.string.choice_theme_light),
-                                AppTheme.DARK to stringResource(R.string.choice_theme_dark),
-                                AppTheme.APOLLO_PURPLE to stringResource(R.string.choice_theme_apollo_purple),
-                            ),
-                            theme,
-                        ) { CarSettings.setAppTheme(it) }
-                    }
-                    if (theme != AppTheme.LIGHT && theme != AppTheme.APOLLO_PURPLE) item {
-                        ChoiceRow(
-                            stringResource(R.string.car_dark_mode),
-                            listOf(
-                                DarkStyle.BLACK to stringResource(R.string.choice_dark_black),
-                                DarkStyle.BLACK_COLOUR to stringResource(R.string.choice_dark_black_colour),
-                                DarkStyle.DEEP_COLOUR to stringResource(R.string.choice_dark_deep_colour),
-                                DarkStyle.GREY to stringResource(R.string.choice_dark_grey),
-                            ),
-                            darkStyle,
-                        ) { CarSettings.setDarkStyle(it) }
+                        ScrollableThemeChoiceRow(
+                            stringResource(R.string.car_themes),
+                            carThemeChoices(),
+                            themePreset,
+                        ) { CarSettings.setThemePreset(it) }
                     }
                     item {
                         ChoiceRow(
@@ -318,6 +300,49 @@ private fun <T> ChoiceRow(title: String, options: List<Pair<T, String>>, selecte
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 ChoiceButtons(options, selected, onSelect)
+            }
+        }
+    }
+}
+
+@Composable
+private fun <T> ScrollableThemeChoiceRow(
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+) {
+    val selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0)
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState(
+        initialFirstVisibleItemIndex = selectedIndex,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        LazyRow(
+            state = listState,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(options.size) { index ->
+                val (value, label) = options[index]
+                val isSelected = value == selected
+                val scheme = MaterialTheme.colorScheme
+                GsIconBox(
+                    onClick = { onSelect(value) },
+                    modifier = Modifier.width(160.dp).height(64.dp),
+                    colors = if (isSelected) GsColors(scheme.primaryContainer, scheme.onPrimaryContainer)
+                    else GsColors(scheme.surfaceContainerHigh, scheme.onSurface),
+                    latched = isSelected,
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                }
             }
         }
     }

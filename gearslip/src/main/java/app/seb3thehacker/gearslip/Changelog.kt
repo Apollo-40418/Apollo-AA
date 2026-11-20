@@ -17,7 +17,8 @@ object Changelog {
         Release(
             100019, "1.0.1",
             listOf(
-                "Set a photo as the app drawer background.",
+                "Set a photo or animated GIF as the app drawer background, with adjustable GIF speed.",
+                "Choose ready-made White or Black themes with eight colors, or Apollo Black & Purple for the multimedia preview.",
                 "Choose Transparent Border, Round, or Square app tiles alongside Tactile, Keycap, and Flat.",
                 "Pick named colors for the app drawer shapes; Tactile, Keycap, and Flat use solid colors.",
             ),

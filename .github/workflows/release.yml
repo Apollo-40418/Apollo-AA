@@ -5,6 +5,12 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to update
+        required: true
+        default: v1.0.1
+        type: string
 
 jobs:
   build:
@@ -16,6 +22,30 @@ jobs:
         with:
           # The build names itself after the newest tag, which a shallow clone doesn't have.
           fetch-depth: 0
+
+      - name: Select release version
+        env:
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            release_tag="$REQUESTED_RELEASE_TAG"
+          else
+            release_tag="$GITHUB_REF_NAME"
+          fi
+          [[ "$release_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || {
+            echo "Expected a stable version tag like v1.0.1, got: $release_tag" >&2
+            exit 1
+          }
+          git rev-parse --verify "refs/tags/$release_tag" >/dev/null
+          version="${release_tag#v}"
+          IFS=. read -r major minor patch <<< "$version"
+          version_code=$(((major * 100 + minor) * 100 + patch) * 10 + 9)
+          {
+            echo "RELEASE_TAG=$release_tag"
+            echo "RELEASE_VERSION=$version"
+            echo "RELEASE_VERSION_CODE=$version_code"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v4
         with:
@@ -43,7 +73,7 @@ jobs:
           chmod 600 keystore.properties
 
       - name: Build release APK
-        run: ./gradlew :gearslip:assembleRelease
+        run: ./gradlew :gearslip:assembleRelease -PgearslipVersionName="$RELEASE_VERSION" -PgearslipVersionCode="$RELEASE_VERSION_CODE"
 
       - name: Locate APK
         id: apk
@@ -51,16 +81,17 @@ jobs:
           set -euo pipefail
           source_apk=build/Apollo_Android_Auto.apk
           test -f "$source_apk" || { echo "no APK at $source_apk"; ls -R build | head -50; exit 1; }
-          version="${GITHUB_REF_NAME#v}"
-          apk="build/Apollo-AA-${version}.apk"
+          apk="build/Apollo-AA-${RELEASE_VERSION}.apk"
           cp "$source_apk" "$apk"
           echo "path=$apk" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: Apollo AA ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Apollo AA ${{ env.RELEASE_VERSION }}
           files: ${{ steps.apk.outputs.path }}
+          overwrite_files: true
           # The hand-written notes go first; GitHub adds the full changelog link under them.
           body_path: .github/release-notes.md
           generate_release_notes: true

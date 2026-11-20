@@ -103,21 +103,22 @@ import java.util.Date
 /**
  * The whole car screen: the current screen on top, the nav bar along the bottom.
  *
- * Colours follow the phone's theme (Material You). The size setting scales everything by
- * changing the density, so text, icons and touch targets grow together.
+ * Colours follow the phone's Material You palette unless a multimedia theme/accent is selected.
+ * The size setting scales everything by changing density, so text, icons and touch targets grow together.
  */
 @Composable
 fun CarUi() {
     val scale by CarSettings.scale.collectAsState()
     val phoneDark by CarEnvironment.phoneDark.collectAsState()
     val appTheme by CarSettings.appTheme.collectAsState()
+    val appAccent by CarSettings.appAccent.collectAsState()
     val uiThemeId by CarSettings.uiTheme.collectAsState()
     val darkStyle by CarSettings.darkStyle.collectAsState()
     val mediaApp by CarServices.mediaApp.collectAsState()
     val darkOutside by CarEnvironment.darkOutside.collectAsState()
     val appContext = LocalContext.current.applicationContext
     val dark = appTheme.isDark(phoneDark)
-    val colors = gearslipColorScheme(appContext, appTheme, phoneDark, darkStyle)
+    val colors = gearslipColorScheme(appContext, appTheme, phoneDark, darkStyle, appAccent)
     val base = LocalDensity.current
     val insets by CarEnvironment.insets.collectAsState()
     val navigator = remember {
