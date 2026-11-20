@@ -62,6 +62,8 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 | Preview. | Themes. |
 | ![Apollo AA running on Android 10](docs/screenshots/apollo-running-android-10.png) | ![Android 10 screen in Apollo AA](docs/screenshots/apollo-android-10.png) |
 | Running on Android 10. | Android 10. |
+| ![Animated GIF background in the Apollo AA app drawer](Apollo_AA%20ICONS/Gif_apresentacao.gif) | |
+| Set an animated GIF as the app drawer background. | |
 | ![Round app drawer button shape](Apollo_AA%20ICONS/NOVAS%20FOTOS/BOTAO%20REDONDO.png) | ![Square app drawer button shape](Apollo_AA%20ICONS/NOVAS%20FOTOS/BOTAO%20QUADRADO.png) |
 | Round buttons. | Square buttons. |
 | ![App drawer button color options](Apollo_AA%20ICONS/NOVAS%20FOTOS/CORES.png) | ![Custom app drawer background option](Apollo_AA%20ICONS/NOVAS%20FOTOS/FUNDO.png) |
@@ -86,7 +88,8 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 - **Your apps, your order.** Apps group by kind. Press and hold one to move it, and hide
   the ones you don't use from the Apps card on the phone.
 - **Your look.** The car screen takes your phone's Material You colors. Choose flat
-  buttons or ones that look like real keys, and make text bigger on small screens.
+  buttons or ones that look like real keys, make text bigger on small screens, and set a photo
+  or animated GIF as the app drawer background.
 - **Settings on the phone.** Set things up before you drive. A change on either screen
   shows on both.
 

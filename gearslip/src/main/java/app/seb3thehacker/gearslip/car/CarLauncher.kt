@@ -1,6 +1,7 @@
 package app.seb3thehacker.gearslip.car
 
 import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.res.stringResource
@@ -57,6 +58,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.content.Context
 import android.net.Uri
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.Color
@@ -300,6 +303,11 @@ internal fun launchEntry(entry: Entry, navigator: CarNavigator, frame: CarEnviro
     entry.messaging?.let { navigator.messages(it.packageName, it.label) }
 }
 
+private sealed interface DrawerBackgroundImage {
+    data class Static(val bitmap: ImageBitmap) : DrawerBackgroundImage
+    data class Animated(val drawable: AnimatedImageDrawable) : DrawerBackgroundImage
+}
+
 /** The app launcher: every app as an icon grid, grouped Phone, Maps, Music, Messaging, Web, Screen sharing, Settings. */
 @Composable
 fun CarLauncher() {
@@ -308,11 +316,11 @@ fun CarLauncher() {
     val frame by CarEnvironment.frame.collectAsState()
     val drawerBackground by CarSettings.drawerBackground.collectAsState()
     var backgroundLoadFailed by remember(drawerBackground?.uri) { mutableStateOf(false) }
-    val backgroundImage by produceState<ImageBitmap?>(null, drawerBackground?.uri) {
+    val backgroundImage by produceState<DrawerBackgroundImage?>(null, drawerBackground?.uri) {
         value = null
-        val uri = drawerBackground?.uri ?: return@produceState
+        val background = drawerBackground ?: return@produceState
         try {
-            value = loadDrawerBackground(context, Uri.parse(uri))
+            value = loadDrawerBackground(context, Uri.parse(background.uri), background.fileName)
         } catch (_: IOException) {
             backgroundLoadFailed = true
         } catch (_: SecurityException) {
@@ -377,14 +385,16 @@ fun CarLauncher() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        backgroundImage?.let { image ->
-            Image(
-                image,
+        when (val image = backgroundImage) {
+            is DrawerBackgroundImage.Static -> Image(
+                image.bitmap,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 alpha = 0.5f,
             )
+            is DrawerBackgroundImage.Animated -> AnimatedDrawerBackground(image.drawable)
+            null -> Unit
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 108.dp),
@@ -399,19 +409,70 @@ fun CarLauncher() {
     }
 }
 
-private suspend fun loadDrawerBackground(context: Context, uri: Uri): ImageBitmap =
+@Composable
+private fun AnimatedDrawerBackground(drawable: AnimatedImageDrawable) {
+    AndroidView(
+        factory = { context ->
+            ImageView(context).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                imageAlpha = 128
+                drawable.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                setImageDrawable(drawable)
+                drawable.start()
+            }
+        },
+        modifier = Modifier.fillMaxSize(),
+        update = { imageView ->
+            if (imageView.drawable !== drawable) imageView.setImageDrawable(drawable)
+            if (!drawable.isRunning) drawable.start()
+        },
+        onRelease = { imageView ->
+            drawable.stop()
+            imageView.setImageDrawable(null)
+        },
+    )
+}
+
+private suspend fun loadDrawerBackground(
+    context: Context,
+    uri: Uri,
+    fileName: String,
+): DrawerBackgroundImage =
     withContext(Dispatchers.IO) {
         val source = ImageDecoder.createSource(context.contentResolver, uri)
-        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-            val largestDimension = maxOf(info.size.width, info.size.height)
-            val scale = minOf(1f, 2048f / largestDimension)
-            if (scale < 1f) {
-                decoder.setTargetSize(
-                    (info.size.width * scale).toInt().coerceAtLeast(1),
-                    (info.size.height * scale).toInt().coerceAtLeast(1),
-                )
+        val isGif = context.contentResolver.getType(uri).equals("image/gif", ignoreCase = true) ||
+            fileName.substringAfterLast('.', "").equals("gif", ignoreCase = true)
+        if (isGif) {
+            val drawable = ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
+                val largestDimension = maxOf(info.size.width, info.size.height)
+                val scale = minOf(1f, 2048f / largestDimension)
+                if (scale < 1f) {
+                    decoder.setTargetSize(
+                        (info.size.width * scale).toInt().coerceAtLeast(1),
+                        (info.size.height * scale).toInt().coerceAtLeast(1),
+                    )
+                }
             }
-        }.asImageBitmap()
+            if (drawable is AnimatedImageDrawable) {
+                drawable.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                DrawerBackgroundImage.Animated(drawable)
+            } else {
+                DrawerBackgroundImage.Static(drawable.toBitmap().asImageBitmap())
+            }
+        } else {
+            DrawerBackgroundImage.Static(
+                ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                    val largestDimension = maxOf(info.size.width, info.size.height)
+                    val scale = minOf(1f, 2048f / largestDimension)
+                    if (scale < 1f) {
+                        decoder.setTargetSize(
+                            (info.size.width * scale).toInt().coerceAtLeast(1),
+                            (info.size.height * scale).toInt().coerceAtLeast(1),
+                        )
+                    }
+                }.asImageBitmap(),
+            )
+        }
     }
 
 /** A red disc with a white X: marks a tile known not to work with Gearslip yet. */
