@@ -4,7 +4,7 @@ This release adds more ways to customize the app drawer.
 
 ## What's new
 
-- Set a photo as the app drawer background.
+- Set a photo or animated GIF as the app drawer background.
 - Choose Transparent Border, Round, or Square app tiles alongside Tactile, Keycap, and Flat.
 - Pick named colors for the app drawer shapes. Tactile, Keycap, and Flat use solid colors.
 
