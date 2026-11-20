@@ -62,6 +62,10 @@ Questions, ideas? [Join the discussion on Matrix](https://matrix.to/#/!mf0_mgBd5
 | Preview. | Themes. |
 | ![Apollo AA running on Android 10](docs/screenshots/apollo-running-android-10.png) | ![Android 10 screen in Apollo AA](docs/screenshots/apollo-android-10.png) |
 | Running on Android 10. | Android 10. |
+| ![Round app drawer button shape](Apollo_AA%20ICONS/NOVAS%20FOTOS/BOTAO%20REDONDO.png) | ![Square app drawer button shape](Apollo_AA%20ICONS/NOVAS%20FOTOS/BOTAO%20QUADRADO.png) |
+| Round buttons. | Square buttons. |
+| ![App drawer button color options](Apollo_AA%20ICONS/NOVAS%20FOTOS/CORES.png) | ![Custom app drawer background option](Apollo_AA%20ICONS/NOVAS%20FOTOS/FUNDO.png) |
+| Choose colors for the button shapes. | Set a photo as the app drawer background. |
 
 ## Features
 
