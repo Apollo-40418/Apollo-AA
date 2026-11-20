@@ -40,7 +40,7 @@ jobs:
           git rev-parse --verify "refs/tags/$release_tag" >/dev/null
           version="${release_tag#v}"
           IFS=. read -r major minor patch <<< "$version"
-          version_code=$(((major * 100 + minor) * 100 + patch) * 10 + 9)
+          version_code=$((major * 100000 + minor * 1000 + patch * 10 + 9))
           {
             echo "RELEASE_TAG=$release_tag"
             echo "RELEASE_VERSION=$version"
