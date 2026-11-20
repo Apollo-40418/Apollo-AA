@@ -1,10 +1,14 @@
 package app.seb3thehacker.gearslip.car
 
+import android.graphics.ImageDecoder
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.res.stringResource
 import app.seb3thehacker.gearslip.R
 import app.seb3thehacker.gearslip.car.theme.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,8 +41,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,15 +63,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import android.content.Context
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -76,6 +90,7 @@ import app.seb3thehacker.gearslip.notify.MessagingApp
 import app.seb3thehacker.gearslip.notify.MessagingCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /** One tile on the launcher: either a phone app's own icon or a built-in glyph. */
 private class Tile(
@@ -291,6 +306,26 @@ fun CarLauncher() {
     val context = LocalContext.current
     val navigator = LocalCarNavigator.current
     val frame by CarEnvironment.frame.collectAsState()
+    val drawerBackground by CarSettings.drawerBackground.collectAsState()
+    var backgroundLoadFailed by remember(drawerBackground?.uri) { mutableStateOf(false) }
+    val backgroundImage by produceState<ImageBitmap?>(null, drawerBackground?.uri) {
+        value = null
+        val uri = drawerBackground?.uri ?: return@produceState
+        try {
+            value = loadDrawerBackground(context, Uri.parse(uri))
+        } catch (_: IOException) {
+            backgroundLoadFailed = true
+        } catch (_: SecurityException) {
+            backgroundLoadFailed = true
+        } catch (_: IllegalArgumentException) {
+            backgroundLoadFailed = true
+        }
+    }
+    LaunchedEffect(backgroundLoadFailed) {
+        if (backgroundLoadFailed) {
+            Toast.makeText(context, R.string.drawer_background_load_error, Toast.LENGTH_LONG).show()
+        }
+    }
 
     // Painted from the cache at once; scanned only if [Prefetch] has not got there first.
     val all = rememberAllEntries()
@@ -341,17 +376,43 @@ fun CarLauncher() {
         onDispose { if (CarKeys.knobTaker === taker) CarKeys.knobTaker = null }
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 108.dp),
-        state = gridState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        itemsIndexed(tiles) { i, tile -> AppTile(tile, if (i == lastIndex) Modifier.focusRequester(lastFocus) else Modifier) }
+    Box(Modifier.fillMaxSize()) {
+        backgroundImage?.let { image ->
+            Image(
+                image,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alpha = 0.5f,
+            )
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 108.dp),
+            state = gridState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            itemsIndexed(tiles) { i, tile -> AppTile(tile, if (i == lastIndex) Modifier.focusRequester(lastFocus) else Modifier) }
+        }
     }
 }
+
+private suspend fun loadDrawerBackground(context: Context, uri: Uri): ImageBitmap =
+    withContext(Dispatchers.IO) {
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val largestDimension = maxOf(info.size.width, info.size.height)
+            val scale = minOf(1f, 2048f / largestDimension)
+            if (scale < 1f) {
+                decoder.setTargetSize(
+                    (info.size.width * scale).toInt().coerceAtLeast(1),
+                    (info.size.height * scale).toInt().coerceAtLeast(1),
+                )
+            }
+        }.asImageBitmap()
+    }
 
 /** A red disc with a white X: marks a tile known not to work with Gearslip yet. */
 /**
@@ -380,16 +441,10 @@ internal fun BrokenBadge(size: androidx.compose.ui.unit.Dp, modifier: Modifier =
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppTile(tile: Tile, modifier: Modifier = Modifier) {
+    val drawerStyle by CarSettings.drawerIconStyle.collectAsState()
+    val drawerTileColor by CarSettings.drawerTileColor.collectAsState()
     val shape = MaterialTheme.shapes.extraLarge
-    // A long press opens the app's menu (pin, close) - the same gesture everywhere apps are
-    // shown, here and on the nav bar. GsIconBox marks it in the theme's style.
-    GsIconBox(
-        onClick = tile.onClick,
-        onLongClick = tile.onLongClick,
-        modifier = modifier.height(120.dp),
-        colors = GsColors(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant),
-        shape = shape,
-    ) {
+    val content: @Composable BoxScope.() -> Unit = {
         Box(Modifier.fillMaxSize()) {
             Column(
                 Modifier.fillMaxSize().padding(8.dp),
@@ -409,9 +464,28 @@ private fun AppTile(tile: Tile, modifier: Modifier = Modifier) {
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                TileLabel(tile)
+                TileLabel(tile, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+    if (drawerStyle == DrawerIconStyle.DEFAULT) {
+        val scheme = MaterialTheme.colorScheme
+        val selectedColor = drawerTileColor.color
+        val tileColors = if (selectedColor == null) {
+            GsColors(scheme.surfaceVariant, scheme.onSurfaceVariant)
+        } else {
+            GsColors(selectedColor, scheme.onSurfaceVariant, selectedColor)
+        }
+        GsIconBox(
+            onClick = tile.onClick,
+            onLongClick = tile.onLongClick,
+            modifier = modifier.height(120.dp),
+            colors = tileColors,
+            shape = shape,
+            content = content,
+        )
+    } else {
+        StyledDrawerTile(tile, drawerStyle, drawerTileColor, modifier, content)
     }
 }
 
@@ -419,16 +493,82 @@ private fun AppTile(tile: Tile, modifier: Modifier = Modifier) {
 private fun TileIcon(tile: Tile) {
     when {
         tile.icon != null -> Image(tile.icon, contentDescription = null, modifier = Modifier.size(52.dp))
-        tile.glyph != null -> Icon(tile.glyph, contentDescription = null, modifier = Modifier.size(52.dp))
+        tile.glyph != null -> Icon(
+            tile.glyph,
+            contentDescription = null,
+            modifier = Modifier.size(52.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TileLabel(tile: Tile, maxLines: Int = 2, modifier: Modifier = Modifier) {
+private fun StyledDrawerTile(
+    tile: Tile,
+    style: DrawerIconStyle,
+    color: DrawerTileColor,
+    modifier: Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
+    val shape = when (style) {
+        DrawerIconStyle.DEFAULT -> MaterialTheme.shapes.extraLarge
+        DrawerIconStyle.TRANSPARENT_BORDER -> RoundedCornerShape(14.dp)
+        DrawerIconStyle.ROUND -> CircleShape
+        DrawerIconStyle.SQUARE -> RoundedCornerShape(2.dp)
+    }
+    val namedColor = color.color
+    val defaultOutline = when (style) {
+        DrawerIconStyle.DEFAULT -> Color.Transparent
+        DrawerIconStyle.TRANSPARENT_BORDER -> scheme.primary
+        DrawerIconStyle.ROUND -> scheme.secondary
+        DrawerIconStyle.SQUARE -> scheme.tertiary
+    }
+    val outline = namedColor ?: defaultOutline
+    val container = when (style) {
+        DrawerIconStyle.DEFAULT, DrawerIconStyle.TRANSPARENT_BORDER -> Color.Transparent
+        DrawerIconStyle.ROUND -> namedColor?.copy(alpha = 0.22f) ?: scheme.secondaryContainer
+        DrawerIconStyle.SQUARE -> namedColor?.copy(alpha = 0.22f) ?: scheme.tertiaryContainer
+    }
+    val pressedContainer = when (style) {
+        DrawerIconStyle.DEFAULT -> Color.Transparent
+        DrawerIconStyle.TRANSPARENT_BORDER -> outline.copy(alpha = 0.08f)
+        DrawerIconStyle.ROUND, DrawerIconStyle.SQUARE ->
+            namedColor?.copy(alpha = 0.34f) ?: container.copy(alpha = 0.82f)
+    }
+    val containerColor by animateColorAsState(
+        targetValue = if (pressed) pressedContainer else container,
+        animationSpec = tween(120),
+        label = "drawerTilePress",
+    )
+    Box(
+        modifier
+            .height(120.dp)
+            .background(containerColor, shape)
+            .border(if (focused) 3.dp else if (style == DrawerIconStyle.SQUARE) 2.dp else 1.5.dp, if (focused) scheme.primary else outline, shape)
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onLongClick = tile.onLongClick,
+                onClick = tile.onClick,
+            ),
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
+}
+
+@Composable
+private fun TileLabel(tile: Tile, maxLines: Int = 2, modifier: Modifier = Modifier, color: Color) {
     Text(
         tile.label,
         modifier = modifier,
         style = MaterialTheme.typography.labelLarge,
+        color = color,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
         maxLines = maxLines,

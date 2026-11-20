@@ -1,15 +1,14 @@
-# Apollo AA 1.0.0
+# Apollo AA 1.0.1
 
-The first production release of Apollo AA, package `com.apollo.app_aa`, modified to support
-Android 10 (API 29) and newer.
+This release adds more ways to customize the app drawer.
 
-## Included
+## What's new
 
-- Local car compatibility list in Help.
-- ADB permission status in Help.
-- Apollo AA branding and updated screenshots.
+- Set a photo as the app drawer background.
+- Choose Transparent Border, Round, or Square app tiles alongside Tactile, Keycap, and Flat.
+- Pick named colors for the app drawer shapes. Tactile, Keycap, and Flat use solid colors.
 
-Download `Apollo-AA-1.0.0.apk` below. This release is signed for production; future updates
+Download `Apollo-AA-1.0.1.apk` below. This release is signed for production; future updates
 must use the same signing key.
 
 > **If you installed an earlier debug build:** Android treats its debug signing key as a

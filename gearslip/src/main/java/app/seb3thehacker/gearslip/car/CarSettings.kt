@@ -34,6 +34,8 @@ data class ScreenSize(val width: Int, val height: Int) {
     }
 }
 
+internal data class DrawerBackground(val uri: String, val fileName: String)
+
 /**
  * How a head unit puts our frame on a screen of another shape. [CROP] cuts the edges off, as
  * a car's own margins do; [SQUASH] shrinks the whole frame to fit, stretching everything.
@@ -72,6 +74,10 @@ private const val KEY_LOCATION_WARNING = "car_location_warning"
     private const val KEY_DEFAULT_HIDDEN = "car_default_hidden"
     private const val KEY_THEME = "car_app_theme"
     private const val KEY_UI_THEME = "car_ui_theme"
+    private const val KEY_DRAWER_ICON_STYLE = "car_drawer_icon_style"
+    private const val KEY_DRAWER_TILE_COLOR = "car_drawer_tile_color"
+    private const val KEY_DRAWER_BACKGROUND_URI = "car_drawer_background_uri"
+    private const val KEY_DRAWER_BACKGROUND_NAME = "car_drawer_background_name"
     private const val KEY_DARK_STYLE = "car_dark_style"
     private const val KEY_PINNED = "car_pinned_apps"
     private const val KEY_APP_ORDER = "car_app_order"
@@ -125,6 +131,18 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
 
     /** Id of the [GsTheme] controls are drawn in; an unknown id falls back to the default. */
     val uiTheme: StateFlow<String> = uiThemeFlow
+    private val drawerIconStyleFlow = MutableStateFlow(DrawerIconStyle.DEFAULT)
+
+    /** Style selected for the app drawer's clickable tiles. */
+    internal val drawerIconStyle: StateFlow<DrawerIconStyle> = drawerIconStyleFlow
+    private val drawerTileColorFlow = MutableStateFlow(DrawerTileColor.DEFAULT)
+
+    /** Color used only by the app drawer's tile shapes, regardless of button theme. */
+    internal val drawerTileColor: StateFlow<DrawerTileColor> = drawerTileColorFlow
+    private val drawerBackgroundFlow = MutableStateFlow<DrawerBackground?>(null)
+
+    /** User-selected image behind the app drawer, or null for the original background. */
+    internal val drawerBackground: StateFlow<DrawerBackground?> = drawerBackgroundFlow
     private val pinnedFlow = MutableStateFlow<Set<String>>(emptySet())
     private val appOrderFlow = MutableStateFlow<List<String>>(emptyList())
     private val hiddenAppsFlow = MutableStateFlow<Set<String>>(emptySet())
@@ -390,6 +408,19 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
             DarkStyle.valueOf(AppSettings.getString(app, KEY_DARK_STYLE, DarkStyle.BLACK.name))
         }.getOrDefault(DarkStyle.BLACK)
         uiThemeFlow.value = AppSettings.getString(app, KEY_UI_THEME, GsThemes.default.id)
+        drawerIconStyleFlow.value = DrawerIconStyle.fromPreference(
+            AppSettings.getString(app, KEY_DRAWER_ICON_STYLE, DrawerIconStyle.DEFAULT.name),
+        )
+        drawerTileColorFlow.value = DrawerTileColor.fromPreference(
+            AppSettings.getString(app, KEY_DRAWER_TILE_COLOR, DrawerTileColor.DEFAULT.name),
+        )
+        val drawerBackgroundUri = AppSettings.getString(app, KEY_DRAWER_BACKGROUND_URI, "")
+        val drawerBackgroundName = AppSettings.getString(app, KEY_DRAWER_BACKGROUND_NAME, "")
+        drawerBackgroundFlow.value = if (drawerBackgroundUri.isNotEmpty() && drawerBackgroundName.isNotEmpty()) {
+            DrawerBackground(drawerBackgroundUri, drawerBackgroundName)
+        } else {
+            null
+        }
         autoplayFlow.value = AppSettings.getString(app, KEY_AUTOPLAY, "false") == "true"
         playerTitleFlow.value = AppSettings.getString(app, KEY_PLAYER_TITLE, "false") == "true"
         playerLeftFlow.value = AppSettings.getString(app, KEY_PLAYER_LEFT, "false") == "true"
@@ -472,6 +503,36 @@ private const val KEY_CLUSTER_VIDEO = "cluster_video_enabled"
     fun setUiTheme(id: String) {
         uiThemeFlow.value = id
         AppSettings.putString(app, KEY_UI_THEME, id)
+    }
+
+    private fun setDrawerIconStyle(style: DrawerIconStyle) {
+        drawerIconStyleFlow.value = style
+        AppSettings.putString(app, KEY_DRAWER_ICON_STYLE, style.name)
+    }
+
+    internal fun setButtonsStyle(id: String) {
+        val drawerStyle = DrawerIconStyle.fromButtonChoice(id)
+        if (drawerStyle != null) {
+            setDrawerIconStyle(drawerStyle)
+            return
+        }
+
+        require(GsThemes.builtIn.any { it.id == id }) { "Unknown car button style: $id" }
+        setDrawerIconStyle(DrawerIconStyle.DEFAULT)
+        setUiTheme(id)
+    }
+
+    internal fun setDrawerTileColor(id: String) {
+        val color = DrawerTileColor.fromChoiceId(id)
+            ?: throw IllegalArgumentException("Unknown app drawer color: $id")
+        drawerTileColorFlow.value = color
+        AppSettings.putString(app, KEY_DRAWER_TILE_COLOR, color.name)
+    }
+
+    internal fun setDrawerBackground(background: DrawerBackground?) {
+        drawerBackgroundFlow.value = background
+        AppSettings.putString(app, KEY_DRAWER_BACKGROUND_URI, background?.uri.orEmpty())
+        AppSettings.putString(app, KEY_DRAWER_BACKGROUND_NAME, background?.fileName.orEmpty())
     }
 
     fun setPlayerTitle(on: Boolean) {

@@ -15,6 +15,14 @@ object Changelog {
 
     val releases = listOf(
         Release(
+            100019, "1.0.1",
+            listOf(
+                "Set a photo as the app drawer background.",
+                "Choose Transparent Border, Round, or Square app tiles alongside Tactile, Keycap, and Flat.",
+                "Pick named colors for the app drawer shapes; Tactile, Keycap, and Flat use solid colors.",
+            ),
+        ),
+        Release(
             100009, "1.0.0",
             listOf(
                 "Choose Apollo's new black and purple premium theme on the phone or in the car.",

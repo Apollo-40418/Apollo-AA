@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.seb3thehacker.gearslip.car.theme.GsColors
 import app.seb3thehacker.gearslip.car.theme.GsIconBox
-import app.seb3thehacker.gearslip.car.theme.GsThemes
 import app.seb3thehacker.gearslip.AppSettings
 
 /**
@@ -72,6 +71,8 @@ fun CarSettingsScreen() {
     val navMic by CarSettings.navMic.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
+    val drawerIconStyle by CarSettings.drawerIconStyle.collectAsState()
+    val drawerTileColor by CarSettings.drawerTileColor.collectAsState()
     val darkStyle by CarSettings.darkStyle.collectAsState()
     val experimentalFeatures by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
@@ -141,9 +142,16 @@ fun CarSettingsScreen() {
                     item {
                         ChoiceRow(
                             stringResource(R.string.car_buttons),
-                            GsThemes.builtIn.map { it.id to it.name },
-                            uiTheme,
-                        ) { CarSettings.setUiTheme(it) }
+                            carButtonChoices(),
+                            selectedButtonChoice(uiTheme, drawerIconStyle),
+                        ) { CarSettings.setButtonsStyle(it) }
+                    }
+                    item {
+                        ChoiceRow(
+                            stringResource(R.string.car_drawer_button_color),
+                            carDrawerColorChoices(),
+                            selectedDrawerColorChoice(drawerTileColor),
+                        ) { CarSettings.setDrawerTileColor(it) }
                     }
                     item {
                         ChoiceRow(

@@ -61,7 +61,10 @@ import app.seb3thehacker.gearslip.car.LauncherCache
 import app.seb3thehacker.gearslip.car.NavBarMode
 import app.seb3thehacker.gearslip.car.NightMode
 import app.seb3thehacker.gearslip.car.Units
-import app.seb3thehacker.gearslip.car.theme.GsThemes
+import app.seb3thehacker.gearslip.car.carDrawerColorChoices
+import app.seb3thehacker.gearslip.car.carButtonChoices
+import app.seb3thehacker.gearslip.car.selectedDrawerColorChoice
+import app.seb3thehacker.gearslip.car.selectedButtonChoice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -273,6 +276,7 @@ internal fun CarGroupScreen(group: CarGroup, onBack: () -> Unit) {
 
 @Composable
 private fun GroupRows(group: CarGroup) {
+    val drawerBackgroundPicker = rememberDrawerBackgroundPicker()
     val scale by CarSettings.scale.collectAsState()
     val density by CarSettings.carDensity.collectAsState()
     val open by CarSettings.openOnConnect.collectAsState()
@@ -291,11 +295,14 @@ private fun GroupRows(group: CarGroup) {
     val navMic by CarSettings.navMic.collectAsState()
     val theme by CarSettings.appTheme.collectAsState()
     val uiTheme by CarSettings.uiTheme.collectAsState()
+    val drawerIconStyle by CarSettings.drawerIconStyle.collectAsState()
+    val drawerTileColor by CarSettings.drawerTileColor.collectAsState()
     val darkStyle by CarSettings.darkStyle.collectAsState()
     val experimental by CarSettings.experimentalFeaturesEnabled.collectAsState()
     val carSensors by CarSettings.carSensorsEnabled.collectAsState()
     val adaptiveVideo by CarSettings.adaptiveVideoEnabled.collectAsState()
     val clusterVideo by CarSettings.clusterVideoEnabled.collectAsState()
+    DrawerBackgroundPickerError(drawerBackgroundPicker)
 
     when (group) {
         CarGroup.APPS -> AppRows()
@@ -323,7 +330,21 @@ private fun GroupRows(group: CarGroup) {
                 Choice(stringResource(R.string.car_dark_mode), darkChoices(), darkStyle, CarSettings::setDarkStyle)
                 SettingsDivider()
             }
-            Choice(stringResource(R.string.car_buttons), GsThemes.builtIn.map { it.id to it.name }, uiTheme, CarSettings::setUiTheme)
+            Choice(
+                stringResource(R.string.car_buttons),
+                carButtonChoices(),
+                selectedButtonChoice(uiTheme, drawerIconStyle),
+                CarSettings::setButtonsStyle,
+            )
+            SettingsDivider()
+            Choice(
+                stringResource(R.string.car_drawer_button_color),
+                carDrawerColorChoices(),
+                selectedDrawerColorChoice(drawerTileColor),
+                CarSettings::setDrawerTileColor,
+            )
+            SettingsDivider()
+            DrawerBackgroundSetting(drawerBackgroundPicker.choosePhoto)
             SettingsDivider()
             Choice(stringResource(R.string.car_map_day_night), nightChoices(), night, CarSettings::setNightMode)
             SettingsDivider()
