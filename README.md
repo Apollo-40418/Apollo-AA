@@ -27,10 +27,20 @@ without Google's Android Auto app.
 
 ## Features
 
+### Apollo AA customizations
+
+- Android 10 (API 29) and newer are supported. Wireless auto-connect requires Android 12 or later.
+- Apollo AA branding and app icon, with an in-app **What's New** popup.
+- A Help popup lists cars reported to work or not work with Apollo AA.
+- Optional ADB commands show whether each permission is **ADB GRANTED** or **ADB NOT GRANTED**.
+- The app drawer keeps Tactile, Flat, and Keycap styles, and adds Transparent Border, Round, and Square.
+- Choose named colors for the app drawer shapes, including the original button styles.
+- Set a photo or animated GIF as the app drawer background. These customizations do not change the main menu.
+
+### Android Auto essentials
+
 - Connect to compatible head units over USB or wireless.
 - Use car-ready map, music, and messaging apps, plus built-in calling and voice controls.
-- Customize the app drawer with different button shapes, colors, photos, and animated GIFs.
-- Run on Android 10 (API 29) and newer.
 
 ## Screenshots
 
